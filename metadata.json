@@ -1,0 +1,6 @@
+{
+  "name": "Govt Jobs",
+  "description": "Live government job notifications, seat availability, and quotas across India.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
