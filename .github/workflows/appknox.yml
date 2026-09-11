@@ -44,16 +44,15 @@ jobs:
       - name: Build the app
         run: ./gradlew assembleDebug                                 # Update this to build your Android or iOS application
 
-      - name: Appknox GitHub action
-        uses: appknox/appknox-github-action@b7d2bfb2321d5544e97bffcba48557234ab953a4
+      - name: Aqua Security Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          appknox_access_token: ${{ secrets.APPKNOX_ACCESS_TOKEN }}
-          file_path: app/build/outputs/apk/debug/app-debug.apk        # Specify the path to your .ipa or .apk here
-          risk_threshold: MEDIUM                                      # Update this to desired risk threshold [LOW, MEDIUM, HIGH, CRITICAL]
-          sarif: Enable
+          scan-type: 'fs'
+          format: 'sarif'
+          output: 'report.sarif'
 
       - name: Upload SARIF to GHAS
-        if: always()
+        if: always() && hashFiles('report.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: report.sarif
