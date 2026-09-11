@@ -2,6 +2,8 @@ package com.example.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -9,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ManageSearch
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.*
 import com.example.ui.components.JobCardItem
+import com.example.ui.theme.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -30,17 +34,21 @@ fun SearchScreen(
     bookmarkedIds: Set<Int>,
     onToggleBookmark: (Int) -> Unit,
     onJobDoubleTap: (Job) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     var query by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(JobCategory.ALL) }
     var selectedQualification by remember { mutableStateOf("All Qualifications") }
     var onlyApplyActive by remember { mutableStateOf(false) }
+    val isDark = isSystemInDarkTheme()
 
     val searchResults = remember(query, selectedCategory, selectedQualification, onlyApplyActive) {
         DummyJobs.filter { job ->
             val matchQuery = if (query.isBlank()) true else {
                 job.title.contains(query, ignoreCase = true) ||
+                job.organization.contains(query, ignoreCase = true) ||
                 job.level.contains(query, ignoreCase = true) ||
                 job.location.contains(query, ignoreCase = true) ||
                 job.quota.contains(query, ignoreCase = true)
@@ -58,57 +66,84 @@ fun SearchScreen(
             .fillMaxSize()
             .testTag("specific_search_screen")
     ) {
-        // Specific Search Bar Header
+        // Search Header Surface
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp
+            color = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
+            shadowElevation = 2.dp,
+            border = androidx.compose.foundation.BorderStroke(
+                0.5.dp,
+                if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+            )
         ) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                // Search Input Field
                 TextField(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp)),
-                    placeholder = { Text("Search by exam, department, qualification...") },
-                    leadingIcon = { Icon(Icons.Default.ManageSearch, contentDescription = "Search") },
+                        .clip(RoundedCornerShape(14.dp))
+                        .border(
+                            1.dp,
+                            if (isDark) AppColors.DarkBorder else AppColors.LightBorder,
+                            RoundedCornerShape(14.dp)
+                        ),
+                    placeholder = {
+                        Text(
+                            "Search by exam, department, role, or qualification...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ManageSearch,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
                     trailingIcon = {
                         if (query.isNotEmpty()) {
                             IconButton(onClick = { query = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                Icon(Icons.Default.Clear, contentDescription = "Clear search query")
                             }
                         }
                     },
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
+                        focusedContainerColor = if (isDark) AppColors.DarkSurfaceElevated else AppColors.LightSurfaceElevated,
+                        unfocusedContainerColor = if (isDark) AppColors.DarkSurfaceElevated else AppColors.LightSurfaceElevated,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent
                     )
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Sector Filters
+                // Sector Filter Chips
                 Text(
-                    text = "Sector / Department",
+                    text = "RECRUITMENT SECTOR",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary,
+                    letterSpacing = 0.5.sp
                 )
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 4.dp)
+                    contentPadding = PaddingValues(vertical = 5.dp)
                 ) {
                     items(JobCategory.entries) { category ->
+                        val isSelected = selectedCategory == category
                         FilterChip(
-                            selected = selectedCategory == category,
+                            selected = isSelected,
                             onClick = { selectedCategory = category },
-                            label = { Text(category.displayName) },
+                            label = { Text(category.displayName, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(10.dp),
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                containerColor = if (isDark) AppColors.DarkSurfaceElevated else AppColors.LightSurfaceElevated,
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = Color.White
                             )
                         )
                     }
@@ -116,23 +151,27 @@ fun SearchScreen(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Qualification Filters
+                // Minimum Qualification Filter Chips
                 Text(
-                    text = "Eligibility / Minimum Qualification",
+                    text = "MINIMUM QUALIFICATION",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary,
+                    letterSpacing = 0.5.sp
                 )
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 4.dp)
+                    contentPadding = PaddingValues(vertical = 5.dp)
                 ) {
                     items(QualificationLevels) { qual ->
+                        val isSelected = selectedQualification == qual
                         FilterChip(
-                            selected = selectedQualification == qual,
+                            selected = isSelected,
                             onClick = { selectedQualification = qual },
-                            label = { Text(qual) },
+                            label = { Text(qual, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(10.dp),
                             colors = FilterChipDefaults.filterChipColors(
+                                containerColor = if (isDark) AppColors.DarkSurfaceElevated else AppColors.LightSurfaceElevated,
                                 selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
                                 selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
                             )
@@ -140,16 +179,18 @@ fun SearchScreen(
                     }
                 }
 
-                // Apply Active Toggle
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Direct Apply Filter Toggle
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Direct 'Apply Now' Link Enabled Only",
+                        text = "Show Direct 'Apply Now' Links Only",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
                     )
                     Switch(
                         checked = onlyApplyActive,
@@ -168,10 +209,10 @@ fun SearchScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "${searchResults.size} Matching Government Jobs",
+                text = "${searchResults.size} Matching Opportunities",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
             )
 
             if (selectedCategory != JobCategory.ALL || selectedQualification != "All Qualifications" || query.isNotEmpty() || onlyApplyActive) {
@@ -200,20 +241,21 @@ fun SearchScreen(
                     Icon(
                         imageVector = Icons.Default.SearchOff,
                         contentDescription = null,
-                        modifier = Modifier.size(54.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        modifier = Modifier.size(52.dp),
+                        tint = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextTertiary
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "No jobs found for these criteria",
+                        text = "No matching vacancies found",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Try adjusting qualification or sector filters",
+                        text = "Try broadening your sector or qualification filters",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextTertiary
                     )
                 }
             }
@@ -221,7 +263,7 @@ fun SearchScreen(
             LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 100.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(searchResults, key = { it.id }) { job ->
@@ -229,7 +271,9 @@ fun SearchScreen(
                         job = job,
                         isBookmarked = bookmarkedIds.contains(job.id),
                         onBookmarkToggle = { onToggleBookmark(job.id) },
-                        onDoubleTap = { onJobDoubleTap(job) }
+                        onDoubleTap = { onJobDoubleTap(job) },
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope
                     )
                 }
             }

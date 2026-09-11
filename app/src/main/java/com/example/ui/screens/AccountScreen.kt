@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.UserProfile
+import com.example.ui.theme.AppColors
 
 @Composable
 fun AccountScreen(
@@ -40,6 +42,7 @@ fun AccountScreen(
     var pushEnabled by remember { mutableStateOf(profile.pushAlertsEnabled) }
     var admitCardAlerts by remember { mutableStateOf(profile.admitCardAlertsEnabled) }
     var examDateAlerts by remember { mutableStateOf(profile.examDateAlertsEnabled) }
+    val isDark = isDarkTheme
 
     LazyColumn(
         state = listState,
@@ -51,74 +54,74 @@ fun AccountScreen(
     ) {
         // Aspirant Profile Hero Card
         item {
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                shape = RoundedCornerShape(22.dp),
+                color = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
+                border = androidx.compose.foundation.BorderStroke(
+                    0.8.dp,
+                    if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                shadowElevation = if (isDark) 4.dp else 2.dp
             ) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Column(
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(22.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Avatar Initials with Specular Halo
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Avatar
-                        Box(
-                            modifier = Modifier
-                                .size(76.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(
-                                            MaterialTheme.colorScheme.primary,
-                                            MaterialTheme.colorScheme.tertiary
-                                        )
+                            .size(76.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        Color(0xFF0072BC)
                                     )
                                 )
-                                .border(2.dp, Color.White.copy(alpha = 0.5f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "AS",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
                             )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
+                            .border(2.dp, Color.White.copy(alpha = 0.5f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = profile.name,
-                            style = MaterialTheme.typography.titleLarge,
+                            text = "AS",
+                            style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color.White
                         )
+                    }
 
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = profile.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                    )
+
+                    Text(
+                        text = profile.email,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextSecondary
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.18f else 0.10f)
+                    ) {
                         Text(
-                            text = profile.email,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "Target: ${profile.targetExam}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                        ) {
-                            Text(
-                                text = "Target: ${profile.targetExam}",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            )
-                        }
                     }
                 }
             }
@@ -126,13 +129,16 @@ fun AccountScreen(
 
         // Saved Bookmarks Quick Row
         item {
-            Card(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
                     .clickable { onViewBookmarks() },
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                color = if (isDark) AppColors.DarkSurfaceElevated else AppColors.LightSurfaceElevated,
+                border = androidx.compose.foundation.BorderStroke(
+                    0.8.dp,
+                    if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
                 )
             ) {
                 Row(
@@ -145,14 +151,14 @@ fun AccountScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
-                                .background(MaterialTheme.colorScheme.secondary, CircleShape),
+                                .size(42.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Bookmark,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondary,
+                                tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -161,12 +167,13 @@ fun AccountScreen(
                             Text(
                                 text = "Bookmarked Government Jobs",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
                             )
                             Text(
-                                text = "$bookmarkedCount jobs saved for quick application",
+                                text = "$bookmarkedCount positions saved for quick application",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
                             )
                         }
                     }
@@ -174,7 +181,7 @@ fun AccountScreen(
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = "View",
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        tint = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
                     )
                 }
             }
@@ -182,42 +189,53 @@ fun AccountScreen(
 
         // Eligibility & Quota Profile
         item {
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                color = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
+                border = androidx.compose.foundation.BorderStroke(
+                    0.8.dp,
+                    if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                )
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Text(
                         text = "Candidate Eligibility & Quota Profile",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     ProfileItem(
                         icon = Icons.Default.School,
                         label = "Highest Qualification",
-                        value = profile.qualification
+                        value = profile.qualification,
+                        isDark = isDark
                     )
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        color = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                    )
 
                     ProfileItem(
                         icon = Icons.Default.Category,
                         label = "Reservation / Quota Category",
-                        value = selectedCategoryQuota
+                        value = selectedCategoryQuota,
+                        isDark = isDark
                     )
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        color = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                    )
 
                     ProfileItem(
                         icon = Icons.Default.PinDrop,
                         label = "Home State / Domicile",
-                        value = profile.stateResidence
+                        value = profile.stateResidence,
+                        isDark = isDark
                     )
                 }
             }
@@ -225,45 +243,56 @@ fun AccountScreen(
 
         // Live Alerts & Notifications Preferences
         item {
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                color = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
+                border = androidx.compose.foundation.BorderStroke(
+                    0.8.dp,
+                    if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                )
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Text(
                         text = "Live Alerts & Notification Triggers",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    SwitchRow(
+                    AccountSwitchRow(
                         title = "Push Notifications for New Jobs",
                         subtitle = "Instant alert whenever a relevant quota seat is announced",
                         checked = pushEnabled,
-                        onCheckedChange = { pushEnabled = it }
+                        onCheckedChange = { pushEnabled = it },
+                        isDark = isDark
                     )
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                    )
 
-                    SwitchRow(
+                    AccountSwitchRow(
                         title = "Admit Card Download Alerts",
                         subtitle = "Notify as soon as the hall ticket link goes live",
                         checked = admitCardAlerts,
-                        onCheckedChange = { admitCardAlerts = it }
+                        onCheckedChange = { admitCardAlerts = it },
+                        isDark = isDark
                     )
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                    )
 
-                    SwitchRow(
+                    AccountSwitchRow(
                         title = "Exam Schedule & Date Alerts",
                         subtitle = "Live notice of exam dates and shift timings",
                         checked = examDateAlerts,
-                        onCheckedChange = { examDateAlerts = it }
+                        onCheckedChange = { examDateAlerts = it },
+                        isDark = isDark
                     )
                 }
             }
@@ -271,21 +300,23 @@ fun AccountScreen(
 
         // Appearance & Information
         item {
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                color = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
+                border = androidx.compose.foundation.BorderStroke(
+                    0.8.dp,
+                    if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                )
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Text(
-                        text = "Appearance & App Settings",
+                        text = "Appearance & System Settings",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -294,32 +325,36 @@ fun AccountScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
+                                imageVector = if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Dark Theme",
+                                    text = "Dark Mode",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
                                 )
                                 Text(
-                                    text = if (isDarkTheme) "High-contrast dark mode active" else "Light mode active",
+                                    text = if (isDark) "Obsidian dark mode active" else "Warm alabaster light mode active",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
                                 )
                             }
                         }
 
                         Switch(
-                            checked = isDarkTheme,
+                            checked = isDark,
                             onCheckedChange = { onToggleTheme() }
                         )
                     }
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        color = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                    )
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -328,26 +363,27 @@ fun AccountScreen(
                     ) {
                         Column {
                             Text(
-                                text = "Govt Jobs LIVE App",
+                                text = "JoB_Pulse Gazette Engine",
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
                             )
                             Text(
-                                text = "v1.2.0 • Real-time All-India Quota & Seat Tracker",
+                                text = "v2.0 • Real-time All-India Quota & Recruitment Tracker",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextTertiary
                             )
                         }
 
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
+                            color = AppColors.SuccessGreen.copy(alpha = 0.15f)
                         ) {
                             Text(
                                 text = "VERIFIED",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = AppColors.SuccessGreen,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -359,7 +395,7 @@ fun AccountScreen(
 }
 
 @Composable
-private fun ProfileItem(icon: ImageVector, label: String, value: String) {
+private fun ProfileItem(icon: ImageVector, label: String, value: String, isDark: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
@@ -372,23 +408,25 @@ private fun ProfileItem(icon: ImageVector, label: String, value: String) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextSecondary
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
             )
         }
     }
 }
 
 @Composable
-private fun SwitchRow(
+private fun AccountSwitchRow(
     title: String,
     subtitle: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    isDark: Boolean
 ) {
     Row(
         modifier = Modifier
@@ -401,12 +439,13 @@ private fun SwitchRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
             )
         }
         Switch(

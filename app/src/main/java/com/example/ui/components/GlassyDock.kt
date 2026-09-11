@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ManageSearch
+import androidx.compose.material.icons.automirrored.outlined.ManageSearch
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -26,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.NavTab
+import com.example.ui.theme.AppColors
 
 @Composable
 fun GlassyDock(
@@ -43,58 +46,61 @@ fun GlassyDock(
                 dampingRatio = Spring.DampingRatioLowBouncy,
                 stiffness = Spring.StiffnessMediumLow
             )
-        ) + fadeIn(animationSpec = tween(300)),
+        ) + fadeIn(animationSpec = tween(280)),
         exit = slideOutVertically(
             targetOffsetY = { it * 2 },
-            animationSpec = tween(250, easing = FastOutLinearInEasing)
-        ) + fadeOut(animationSpec = tween(200)),
+            animationSpec = tween(220, easing = FastOutLinearInEasing)
+        ) + fadeOut(animationSpec = tween(180)),
         modifier = modifier
     ) {
         Box(
             modifier = Modifier
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .padding(horizontal = 24.dp, vertical = 12.dp)
                 .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            // Glassy Container
-            val dockShape = RoundedCornerShape(32.dp)
+            val dockShape = RoundedCornerShape(28.dp)
+
+            // Multi-stop glass gradient with specular reflection
             val glassBackground = remember(isDarkTheme) {
                 if (isDarkTheme) {
-                    Brush.linearGradient(
+                    Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFF1E222D).copy(alpha = 0.82f),
-                            Color(0xFF14171F).copy(alpha = 0.90f)
+                            Color(0xE61C2331),
+                            Color(0xF0121721)
                         )
                     )
                 } else {
-                    Brush.linearGradient(
+                    Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.88f),
-                            Color(0xFFF0F3F9).copy(alpha = 0.85f)
+                            Color(0xF2FFFFFF),
+                            Color(0xE6F0F3F7)
                         )
                     )
                 }
             }
 
-            val glassBorderColor = remember(isDarkTheme) {
-                if (isDarkTheme) {
-                    Color.White.copy(alpha = 0.18f)
-                } else {
-                    Color.White.copy(alpha = 0.85f)
-                }
+            val glassBorder = remember(isDarkTheme) {
+                Brush.verticalGradient(
+                    colors = if (isDarkTheme) {
+                        listOf(Color(0x40FFFFFF), Color(0x10FFFFFF))
+                    } else {
+                        listOf(Color(0xE6FFFFFF), Color(0x33000000))
+                    }
+                )
             }
 
             Surface(
                 modifier = Modifier
                     .shadow(
-                        elevation = 20.dp,
+                        elevation = if (isDarkTheme) 24.dp else 12.dp,
                         shape = dockShape,
-                        spotColor = if (isDarkTheme) Color.Black.copy(alpha = 0.65f) else Color(0x33000000),
-                        ambientColor = if (isDarkTheme) Color.Black.copy(alpha = 0.45f) else Color(0x1A000000)
+                        spotColor = if (isDarkTheme) Color.Black.copy(alpha = 0.70f) else Color(0x2E000000),
+                        ambientColor = if (isDarkTheme) Color.Black.copy(alpha = 0.50f) else Color(0x14000000)
                     )
                     .clip(dockShape)
-                    .border(width = 1.2.dp, color = glassBorderColor, shape = dockShape)
+                    .border(width = 1.dp, brush = glassBorder, shape = dockShape)
                     .testTag("floating_glassy_dock"),
                 color = Color.Transparent,
                 shape = dockShape
@@ -102,7 +108,7 @@ fun GlassyDock(
                 Row(
                     modifier = Modifier
                         .background(glassBackground)
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -128,8 +134,8 @@ fun GlassyDock(
                     DockItem(
                         tab = NavTab.SEARCH,
                         isSelected = currentTab == NavTab.SEARCH,
-                        selectedIcon = Icons.Filled.ManageSearch,
-                        unselectedIcon = Icons.Outlined.ManageSearch,
+                        selectedIcon = Icons.AutoMirrored.Filled.ManageSearch,
+                        unselectedIcon = Icons.AutoMirrored.Outlined.ManageSearch,
                         onClick = { onTabSelected(NavTab.SEARCH) },
                         isDarkTheme = isDarkTheme
                     )
@@ -159,19 +165,19 @@ private fun DockItem(
     isDarkTheme: Boolean
 ) {
     val activeColor = MaterialTheme.colorScheme.primary
-    val inactiveColor = if (isDarkTheme) Color.White.copy(alpha = 0.60f) else Color.Black.copy(alpha = 0.55f)
+    val inactiveColor = if (isDarkTheme) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
 
     val activeBackground = if (isDarkTheme) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
     } else {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     }
 
     val interactionSource = remember { MutableInteractionSource() }
 
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(20.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -204,15 +210,15 @@ private fun DockItem(
                         modifier = Modifier
                             .size(7.dp)
                             .align(Alignment.TopEnd)
-                            .background(Color(0xFFFF3B30), CircleShape)
+                            .background(AppColors.LiveRed, CircleShape)
                     )
                 }
             }
 
             AnimatedVisibility(
                 visible = isSelected,
-                enter = fadeIn() + expandHorizontally(),
-                exit = fadeOut() + shrinkHorizontally()
+                enter = fadeIn(tween(150)) + expandHorizontally(tween(180)),
+                exit = fadeOut(tween(120)) + shrinkHorizontally(tween(150))
             ) {
                 Row {
                     Spacer(modifier = Modifier.width(6.dp))

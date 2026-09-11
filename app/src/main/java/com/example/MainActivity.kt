@@ -10,8 +10,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Immutable
@@ -35,6 +37,7 @@ import com.example.ui.screens.FeedScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.JobDetailScreen
 import com.example.ui.screens.SearchScreen
+import com.example.ui.theme.AppColors
 import com.example.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,7 +80,7 @@ class MainViewModel : ViewModel() {
             } else {
                 _uiState.update { it.copy(isLoading = true) }
             }
-            delay(1200) // Realistic network refresh delay
+            delay(1000) // Smooth realistic data refresh
             _uiState.update { state ->
                 state.copy(
                     isLoading = false,
@@ -208,7 +211,9 @@ class MainViewModel : ViewModel() {
                 true
             }
             val queryMatch = if (query.isBlank()) true else {
-                job.title.contains(query, ignoreCase = true) || job.level.contains(query, ignoreCase = true)
+                job.title.contains(query, ignoreCase = true) ||
+                job.organization.contains(query, ignoreCase = true) ||
+                job.level.contains(query, ignoreCase = true)
             }
             val bookmarkMatch = if (showBookmarksOnly) bookmarks.contains(job.id) else true
 
@@ -257,13 +262,12 @@ fun GovtJobsApp(
     onRefresh: () -> Unit,
     onTabSelected: (NavTab) -> Unit = {}
 ) {
-    // Use theme colors directly — animateColorAsState on every frame is expensive
-    // and the MaterialTheme transition itself already provides a smooth switch.
+    val isDark = uiState.isDarkTheme
     val bgColor = MaterialTheme.colorScheme.background
     val topBarColor = MaterialTheme.colorScheme.surface
     val onTopBarColor = MaterialTheme.colorScheme.onSurface
 
-    // Separate scroll states for each screen destination
+    // Distinct scroll states for each tab
     val homeListState = rememberLazyListState()
     val feedListState = rememberLazyListState()
     val searchListState = rememberLazyListState()
@@ -278,8 +282,7 @@ fun GovtJobsApp(
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (selectedJobForDetail != null) return Offset.Zero // disable hiding when in detail
-                // Hide dock when scrolling down; reveal dock when scrolling up
+                if (selectedJobForDetail != null) return Offset.Zero // keep dock hidden in detail
                 if (available.y < -12f) {
                     isDockVisible = false
                 } else if (available.y > 12f) {
@@ -290,7 +293,6 @@ fun GovtJobsApp(
         }
     }
 
-    // Top Bar title depends on active tab
     val screenTitle = when (uiState.currentTab) {
         NavTab.HOME -> if (uiState.showBookmarksOnly) "Saved Jobs" else "Govt Jobs LIVE"
         NavTab.FEED -> "Live Announcements"
@@ -303,11 +305,11 @@ fun GovtJobsApp(
             targetState = selectedJobForDetail,
             label = "main_or_detail",
             transitionSpec = {
-                fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                fadeIn(animationSpec = tween(380, easing = FastOutSlowInEasing)) togetherWith
+                fadeOut(animationSpec = tween(300, easing = FastOutSlowInEasing))
             }
         ) { jobDetail ->
             if (jobDetail != null) {
-                // We show the Job Detail Screen
                 JobDetailScreen(
                     job = jobDetail,
                     onBack = { selectedJobForDetail = null },
@@ -323,12 +325,16 @@ fun GovtJobsApp(
                         TopAppBar(
                             title = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(screenTitle, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        text = screenTitle,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                     if (uiState.currentTab == NavTab.HOME && !uiState.showBookmarksOnly) {
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Surface(
-                                            shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
-                                            color = MaterialTheme.colorScheme.error
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = AppColors.LiveRed
                                         ) {
                                             Text(
                                                 text = "LIVE",
@@ -347,18 +353,22 @@ fun GovtJobsApp(
                             ),
                             actions = {
                                 IconButton(onClick = { onToggleAlerts(true) }) {
-                                    Icon(Icons.Default.Notifications, contentDescription = "Alerts", tint = onTopBarColor)
+                                    Icon(
+                                        imageVector = Icons.Default.Notifications,
+                                        contentDescription = "Alerts",
+                                        tint = onTopBarColor
+                                    )
                                 }
                                 IconButton(onClick = onToggleBookmarksView) {
                                     Icon(
-                                        imageVector = if (uiState.showBookmarksOnly) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                        imageVector = if (uiState.showBookmarksOnly) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
                                         contentDescription = "Bookmarks",
-                                        tint = onTopBarColor
+                                        tint = if (uiState.showBookmarksOnly) MaterialTheme.colorScheme.primary else onTopBarColor
                                     )
                                 }
                                 IconButton(onClick = onToggleTheme) {
                                     Icon(
-                                        imageVector = if (uiState.isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                        imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
                                         contentDescription = "Theme",
                                         tint = onTopBarColor
                                     )
@@ -373,8 +383,6 @@ fun GovtJobsApp(
                             .padding(paddingValues)
                             .background(bgColor)
                     ) {
-                        // Crossfade is much cheaper than AnimatedContent for full-screen tab
-                        // switches — it only cross-fades alpha instead of measuring both screens.
                         Crossfade(
                             targetState = uiState.currentTab,
                             animationSpec = tween(220),
@@ -397,7 +405,9 @@ fun GovtJobsApp(
                                         showBookmarksOnly = uiState.showBookmarksOnly,
                                         onRefresh = onRefresh,
                                         onNavigateToSearch = { onTabSelected(NavTab.SEARCH) },
-                                        onJobDoubleTap = { selectedJobForDetail = it }
+                                        onJobDoubleTap = { selectedJobForDetail = it },
+                                        sharedTransitionScope = this@SharedTransitionLayout,
+                                        animatedVisibilityScope = this@AnimatedContent
                                     )
                                 }
                                 NavTab.FEED -> {
@@ -408,7 +418,9 @@ fun GovtJobsApp(
                                         listState = searchListState,
                                         bookmarkedIds = uiState.bookmarkedJobIds,
                                         onToggleBookmark = onBookmarkToggle,
-                                        onJobDoubleTap = { selectedJobForDetail = it }
+                                        onJobDoubleTap = { selectedJobForDetail = it },
+                                        sharedTransitionScope = this@SharedTransitionLayout,
+                                        animatedVisibilityScope = this@AnimatedContent
                                     )
                                 }
                                 NavTab.ACCOUNT -> {
@@ -423,7 +435,7 @@ fun GovtJobsApp(
                             }
                         }
 
-                        // Floating Glassy Dock (Not attached to bottom, auto-hides on scroll down)
+                        // Floating Glassy Dock
                         GlassyDock(
                             currentTab = uiState.currentTab,
                             onTabSelected = { selectedTab ->
@@ -439,14 +451,14 @@ fun GovtJobsApp(
             }
         }
         
-        // Job Alert Dialog
+        // Job Alert Subscription Dialog
         if (uiState.showAlertsDialog) {
             AlertDialog(
                 onDismissRequest = { onToggleAlerts(false) },
-                title = { Text("Set Live Job Alerts") },
-                text = { Text("Receive instant push notifications whenever a new all-India or state government quota vacancy matches your preferences?") },
+                title = { Text("Set Live Job Alerts", fontWeight = FontWeight.Bold) },
+                text = { Text("Receive immediate push notifications whenever a new All-India or State Government vacancy matches your targeted categories and qualifications?") },
                 confirmButton = {
-                    TextButton(onClick = { onToggleAlerts(false) }) { Text("Subscribe Now") }
+                    Button(onClick = { onToggleAlerts(false) }) { Text("Subscribe Now") }
                 },
                 dismissButton = {
                     TextButton(onClick = { onToggleAlerts(false) }) { Text("Cancel") }
@@ -456,7 +468,7 @@ fun GovtJobsApp(
     }
 }
 
-// Backward-compatible delegates
+// Backward-compatible delegate
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun JobCard(job: Job, isBookmarked: Boolean, onBookmarkToggle: () -> Unit) {
