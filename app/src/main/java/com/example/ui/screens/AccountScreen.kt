@@ -4,7 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.example.ui.theme.LocalAppThemeTokens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -42,7 +42,7 @@ fun AccountScreen(
     var pushEnabled by remember { mutableStateOf(profile.pushAlertsEnabled) }
     var admitCardAlerts by remember { mutableStateOf(profile.admitCardAlertsEnabled) }
     var examDateAlerts by remember { mutableStateOf(profile.examDateAlertsEnabled) }
-    val isDark = isDarkTheme
+    val tokens = LocalAppThemeTokens.current
 
     LazyColumn(
         state = listState,
@@ -57,12 +57,12 @@ fun AccountScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22.dp),
-                color = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
+                color = tokens.surface,
                 border = androidx.compose.foundation.BorderStroke(
                     0.8.dp,
-                    if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                    tokens.borderSubtle
                 ),
-                shadowElevation = if (isDark) 4.dp else 2.dp
+                shadowElevation = if (tokens.isDark) 4.dp else 2.dp
             ) {
                 Column(
                     modifier = Modifier
@@ -78,7 +78,7 @@ fun AccountScreen(
                             .background(
                                 Brush.linearGradient(
                                     listOf(
-                                        MaterialTheme.colorScheme.primary,
+                                        tokens.primary,
                                         Color(0xFF0072BC)
                                     )
                                 )
@@ -100,26 +100,26 @@ fun AccountScreen(
                         text = profile.name,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                        color = tokens.textPrimary
                     )
 
                     Text(
                         text = profile.email,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextSecondary
+                        color = tokens.textTertiary
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.18f else 0.10f)
+                        color = tokens.primary.copy(alpha = if (tokens.isDark) 0.18f else 0.10f)
                     ) {
                         Text(
                             text = "Target: ${profile.targetExam}",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = tokens.primary,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
@@ -135,10 +135,10 @@ fun AccountScreen(
                     .clip(RoundedCornerShape(18.dp))
                     .clickable { onViewBookmarks() },
                 shape = RoundedCornerShape(18.dp),
-                color = if (isDark) AppColors.DarkSurfaceElevated else AppColors.LightSurfaceElevated,
+                color = tokens.surfaceElevated,
                 border = androidx.compose.foundation.BorderStroke(
                     0.8.dp,
-                    if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                    tokens.borderSubtle
                 )
             ) {
                 Row(
@@ -152,7 +152,7 @@ fun AccountScreen(
                         Box(
                             modifier = Modifier
                                 .size(42.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                .background(tokens.primary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -168,12 +168,12 @@ fun AccountScreen(
                                 text = "Bookmarked Government Jobs",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                                color = tokens.textPrimary
                             )
                             Text(
                                 text = "$bookmarkedCount positions saved for quick application",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
+                                color = tokens.textSecondary
                             )
                         }
                     }
@@ -181,7 +181,7 @@ fun AccountScreen(
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = "View",
-                        tint = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
+                        tint = tokens.textSecondary
                     )
                 }
             }
@@ -192,10 +192,10 @@ fun AccountScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
+                color = tokens.surface,
                 border = androidx.compose.foundation.BorderStroke(
                     0.8.dp,
-                    if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                    tokens.borderSubtle
                 )
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
@@ -203,7 +203,7 @@ fun AccountScreen(
                         text = "Candidate Eligibility & Quota Profile",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                        color = tokens.textPrimary
                     )
                     Spacer(modifier = Modifier.height(14.dp))
 
@@ -211,31 +211,31 @@ fun AccountScreen(
                         icon = Icons.Default.School,
                         label = "Highest Qualification",
                         value = profile.qualification,
-                        isDark = isDark
+                        tokens = tokens
                     )
 
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 10.dp),
-                        color = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                        color = tokens.divider
                     )
 
                     ProfileItem(
                         icon = Icons.Default.Category,
                         label = "Reservation / Quota Category",
                         value = selectedCategoryQuota,
-                        isDark = isDark
+                        tokens = tokens
                     )
 
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 10.dp),
-                        color = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                        color = tokens.divider
                     )
 
                     ProfileItem(
                         icon = Icons.Default.PinDrop,
                         label = "Home State / Domicile",
                         value = profile.stateResidence,
-                        isDark = isDark
+                        tokens = tokens
                     )
                 }
             }
@@ -246,10 +246,10 @@ fun AccountScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
+                color = tokens.surface,
                 border = androidx.compose.foundation.BorderStroke(
                     0.8.dp,
-                    if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                    tokens.borderSubtle
                 )
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
@@ -257,7 +257,7 @@ fun AccountScreen(
                         text = "Live Alerts & Notification Triggers",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                        color = tokens.textPrimary
                     )
                     Spacer(modifier = Modifier.height(10.dp))
 
@@ -266,12 +266,12 @@ fun AccountScreen(
                         subtitle = "Instant alert whenever a relevant quota seat is announced",
                         checked = pushEnabled,
                         onCheckedChange = { pushEnabled = it },
-                        isDark = isDark
+                        tokens = tokens
                     )
 
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 8.dp),
-                        color = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                        color = tokens.divider
                     )
 
                     AccountSwitchRow(
@@ -279,12 +279,12 @@ fun AccountScreen(
                         subtitle = "Notify as soon as the hall ticket link goes live",
                         checked = admitCardAlerts,
                         onCheckedChange = { admitCardAlerts = it },
-                        isDark = isDark
+                        tokens = tokens
                     )
 
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 8.dp),
-                        color = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                        color = tokens.divider
                     )
 
                     AccountSwitchRow(
@@ -292,7 +292,7 @@ fun AccountScreen(
                         subtitle = "Live notice of exam dates and shift timings",
                         checked = examDateAlerts,
                         onCheckedChange = { examDateAlerts = it },
-                        isDark = isDark
+                        tokens = tokens
                     )
                 }
             }
@@ -303,10 +303,10 @@ fun AccountScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
+                color = tokens.surface,
                 border = androidx.compose.foundation.BorderStroke(
                     0.8.dp,
-                    if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                    tokens.borderSubtle
                 )
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
@@ -314,7 +314,7 @@ fun AccountScreen(
                         text = "Appearance & System Settings",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                        color = tokens.textPrimary
                     )
                     Spacer(modifier = Modifier.height(10.dp))
 
@@ -325,9 +325,9 @@ fun AccountScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
+                                imageVector = if (tokens.isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = tokens.primary
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
@@ -335,25 +335,25 @@ fun AccountScreen(
                                     text = "Dark Mode",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                                    color = tokens.textPrimary
                                 )
                                 Text(
-                                    text = if (isDark) "Obsidian dark mode active" else "Warm alabaster light mode active",
+                                    text = if (tokens.isDark) "Obsidian dark mode active" else "Warm alabaster light mode active",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
+                                    color = tokens.textSecondary
                                 )
                             }
                         }
 
                         Switch(
-                            checked = isDark,
+                            checked = tokens.isDark,
                             onCheckedChange = { onToggleTheme() }
                         )
                     }
 
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 12.dp),
-                        color = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                        color = tokens.divider
                     )
 
                     Row(
@@ -366,12 +366,12 @@ fun AccountScreen(
                                 text = "JoB_Pulse Gazette Engine",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                                color = tokens.textPrimary
                             )
                             Text(
                                 text = "v2.0 • Real-time All-India Quota & Recruitment Tracker",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextTertiary
+                                color = tokens.textTertiary
                             )
                         }
 
@@ -395,12 +395,12 @@ fun AccountScreen(
 }
 
 @Composable
-private fun ProfileItem(icon: ImageVector, label: String, value: String, isDark: Boolean) {
+private fun ProfileItem(icon: ImageVector, label: String, value: String, tokens: com.example.ui.theme.AppThemeTokens) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = tokens.primary,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
@@ -408,13 +408,13 @@ private fun ProfileItem(icon: ImageVector, label: String, value: String, isDark:
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextSecondary
+                color = tokens.textTertiary
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                color = tokens.textPrimary
             )
         }
     }
@@ -426,7 +426,7 @@ private fun AccountSwitchRow(
     subtitle: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    isDark: Boolean
+    tokens: com.example.ui.theme.AppThemeTokens
 ) {
     Row(
         modifier = Modifier
@@ -440,12 +440,12 @@ private fun AccountSwitchRow(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                color = tokens.textPrimary
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
+                color = tokens.textSecondary
             )
         }
         Switch(

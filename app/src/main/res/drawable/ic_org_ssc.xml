@@ -1,0 +1,41 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Deep Central Secretariat Steel Blue Base -->
+    <path
+        android:fillColor="#1F3A60"
+        android:pathData="M24,2A22,22 0 1,0 46,24A22,22 0 0,0 24,2Z"/>
+    <path
+        android:strokeColor="#81D4FA"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:pathData="M24,5A19,19 0 1,0 43,24A19,19 0 0,0 24,5Z"/>
+    <!-- Central Merit Scales of Justice & Open Knowledge Book -->
+    <!-- Open Book -->
+    <path
+        android:fillColor="#E1F5FE"
+        android:pathData="M14,28c3,-2 7,-1 10,2c3,-3 7,-4 10,-2v7c-3,-2 -7,-1 -10,2c-3,-3 -7,-4 -10,-2z"/>
+    <!-- Balance Scales Central Stem -->
+    <path
+        android:fillColor="#81D4FA"
+        android:pathData="M23,10h2v17h-2z"/>
+    <!-- Balance Horizontal Beam -->
+    <path
+        android:fillColor="#81D4FA"
+        android:pathData="M14,13h20v2h-20z"/>
+    <!-- Scale Pans -->
+    <path
+        android:strokeColor="#81D4FA"
+        android:strokeWidth="1"
+        android:fillColor="#00000000"
+        android:pathData="M16,15L13,22M16,15L19,22M32,15L29,22M32,15L35,22"/>
+    <path
+        android:fillColor="#81D4FA"
+        android:pathData="M12,22h8c0,2 -2,4 -4,4s-4,-2 -4,-4zM28,22h8c0,2 -2,4 -4,4s-4,-2 -4,-4z"/>
+    <!-- Crown / Top Seal -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M22,8h4v2h-4z"/>
+</vector>

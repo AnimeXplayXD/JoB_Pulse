@@ -262,10 +262,11 @@ fun GovtJobsApp(
     onRefresh: () -> Unit,
     onTabSelected: (NavTab) -> Unit = {}
 ) {
-    val isDark = uiState.isDarkTheme
-    val bgColor = MaterialTheme.colorScheme.background
-    val topBarColor = MaterialTheme.colorScheme.surface
-    val onTopBarColor = MaterialTheme.colorScheme.onSurface
+    val tokens = com.example.ui.theme.LocalAppThemeTokens.current
+    val isDark = tokens.isDark
+    val bgColor = tokens.background
+    val topBarColor = tokens.surface
+    val onTopBarColor = tokens.textPrimary
 
     // Distinct scroll states for each tab
     val homeListState = rememberLazyListState()

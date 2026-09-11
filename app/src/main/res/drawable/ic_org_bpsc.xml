@@ -1,0 +1,28 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Bihar Administrative Terracotta Deep Disc -->
+    <path
+        android:fillColor="#873600"
+        android:pathData="M24,2A22,22 0 1,0 46,24A22,22 0 0,0 24,2Z"/>
+    <path
+        android:strokeColor="#FFCC80"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M24,4A20,20 0 1,0 44,24A20,20 0 0,0 24,4Z"/>
+    <!-- Sacred Bodhi Tree (Peepal) Centerpiece of Bihar State Emblem -->
+    <!-- Tree Trunk & Roots Base -->
+    <path
+        android:fillColor="#FFCC80"
+        android:pathData="M22,26h4v12h-4zM18,38h12v2h-12z"/>
+    <!-- Bodhi Leaves Canopy -->
+    <path
+        android:fillColor="#FFE082"
+        android:pathData="M24,8c-3,4 0,7 0,7s3,-3 0,-7zM18,13c-4,3 -1,7 -1,7s4,-2 1,-7zM30,13c4,3 1,7 1,7s-4,-2 -1,-7zM13,20c-4,2 -2,6 -2,6s4,-1 2,-6zM35,20c4,2 2,6 2,6s-4,-1 -2,-6zM24,16c-3,4 0,7 0,7s3,-3 0,-7z"/>
+    <!-- Twin Historic Seals flanking the Bodhi Tree -->
+    <path
+        android:fillColor="#FFCC80"
+        android:pathData="M12,27h4v4h-4zM32,27h4v4h-4z"/>
+</vector>

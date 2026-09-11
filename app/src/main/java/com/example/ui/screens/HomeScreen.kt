@@ -5,7 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.example.ui.theme.LocalAppThemeTokens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -55,7 +55,7 @@ fun HomeScreen(
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
-    val isDark = isSystemInDarkTheme()
+    val tokens = LocalAppThemeTokens.current
 
     Column(
         modifier = modifier
@@ -70,10 +70,10 @@ fun HomeScreen(
                 .clip(RoundedCornerShape(16.dp))
                 .border(
                     1.dp,
-                    if (isDark) AppColors.DarkBorder else AppColors.LightBorder,
+                    tokens.borderSubtle,
                     RoundedCornerShape(16.dp)
                 )
-                .background(if (isDark) AppColors.DarkSurfaceElevated else AppColors.LightSurfaceElevated)
+                .background(tokens.surfaceElevated)
                 .clickable { onNavigateToSearch() }
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
@@ -84,29 +84,25 @@ fun HomeScreen(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Search Entry",
-                    tint = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary,
+                    tint = tokens.textSecondary,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = if (searchQuery.isNotBlank()) searchQuery else "Search exam, post, quota or department...",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (searchQuery.isNotBlank()) {
-                        if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
-                    } else {
-                        if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextTertiary
-                    },
+                    color = if (searchQuery.isNotBlank()) tokens.textPrimary else tokens.textTertiary,
                     modifier = Modifier.weight(1f)
                 )
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (isDark) AppColors.DarkSurfaceSubtle else AppColors.LightSurfaceSubtle
+                    color = tokens.surfaceSubtle
                 ) {
                     Text(
                         text = "EXPLORE",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = tokens.primary,
                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                     )
                 }
@@ -118,7 +114,7 @@ fun HomeScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(JobCategory.entries) { category ->
+            items(JobCategory.entries, key = { it.name }) { category ->
                 val isSelected = selectedCategory == category
                 FilterChip(
                     selected = isSelected,
@@ -132,16 +128,16 @@ fun HomeScreen(
                     },
                     shape = RoundedCornerShape(12.dp),
                     colors = FilterChipDefaults.filterChipColors(
-                        containerColor = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
-                        labelColor = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary,
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        containerColor = tokens.surface,
+                        labelColor = tokens.textSecondary,
+                        selectedContainerColor = tokens.primary,
                         selectedLabelColor = Color.White
                     ),
                     border = FilterChipDefaults.filterChipBorder(
                         enabled = true,
                         selected = isSelected,
-                        borderColor = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle,
-                        selectedBorderColor = MaterialTheme.colorScheme.primary,
+                        borderColor = tokens.borderSubtle,
+                        selectedBorderColor = tokens.primary,
                         borderWidth = 1.dp
                     )
                 )
@@ -158,7 +154,7 @@ fun HomeScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(IndianStates) { stateName ->
+                items(IndianStates, key = { it }) { stateName ->
                     val isSelected = selectedState == stateName
                     FilterChip(
                         selected = isSelected,
@@ -172,9 +168,9 @@ fun HomeScreen(
                         },
                         shape = RoundedCornerShape(10.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            containerColor = if (isDark) AppColors.DarkSurfaceSubtle else AppColors.LightSurfaceSubtle,
-                            selectedContainerColor = if (isDark) AppColors.DarkSurfaceElevated else AppColors.LightSurfaceElevated,
-                            selectedLabelColor = MaterialTheme.colorScheme.primary
+                            containerColor = tokens.surfaceSubtle,
+                            selectedContainerColor = tokens.surfaceElevated,
+                            selectedLabelColor = tokens.primary
                         )
                     )
                 }
@@ -210,19 +206,23 @@ fun HomeScreen(
                                     text = if (showBookmarksOnly) "No bookmarked jobs saved." else "No recruitment notices found.",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
+                                    color = tokens.textSecondary
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "Try switching categories or clearing search filters",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextTertiary
+                                    color = tokens.textTertiary
                                 )
                             }
                         }
                     }
                 } else {
-                    items(jobs, key = { it.id }) { job ->
+                    items(
+                        items = jobs,
+                        key = { it.id },
+                        contentType = { "job_card" }
+                    ) { job ->
                         JobCardItem(
                             job = job,
                             isBookmarked = bookmarkedJobIds.contains(job.id),

@@ -3,11 +3,13 @@ package com.example.ui.components
 import android.content.Intent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,21 +23,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.example.model.Job
-import com.example.ui.theme.AppColors
+import com.example.ui.theme.AppThemeTokens
+import com.example.ui.theme.LocalAppThemeTokens
 import com.example.ui.theme.OrgBrandingRegistry
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -52,14 +56,14 @@ fun JobCardItem(
     var expanded by remember { mutableStateOf(false) }
     var isPressed by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val isDark = isSystemInDarkTheme()
+    val tokens = LocalAppThemeTokens.current
 
     // Authentic Organization Branding & Palette
     val branding = remember(job.organization, job.title) { OrgBrandingRegistry.forJob(job) }
 
-    // Subtle tactile scale spring on tap/press
+    // Subtle tactile scale spring on tap/press using graphicsLayer for zero recomposition jank
     val scaleAnim by animateFloatAsState(
-        targetValue = if (isPressed) 0.982f else 1f,
+        targetValue = if (isPressed) 0.985f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMedium
@@ -67,24 +71,52 @@ fun JobCardItem(
         label = "card_scale_${job.id}"
     )
 
-    // Coordinated corner radius
-    val cornerRadius = 22.dp
-    val cardShape = RoundedCornerShape(cornerRadius)
+    val cardShape = RoundedCornerShape(22.dp)
 
-    // Specular border gradient simulating refined glass edge
-    val specularBorder = remember(isDark, branding) {
+    // Specular border gradient simulating refined liquid-glass edge
+    val specularBorder = remember(tokens.isDark, branding) {
         Brush.verticalGradient(
-            colors = if (isDark) {
-                listOf(branding.borderSpecularTop, AppColors.DarkBorderSubtle)
-            } else {
-                listOf(Color.White.copy(alpha = 0.9f), AppColors.LightBorderSubtle)
-            }
+            colors = listOf(
+                branding.getBorderSpecularTop(tokens.isDark),
+                tokens.borderSubtle
+            )
         )
     }
 
+    // Zero-latency gesture detector: immediate tactile response + immediate expansion on single tap,
+    // while preserving seamless double-tap detection.
+    val cardGestureModifier = Modifier
+        .graphicsLayer {
+            scaleX = scaleAnim
+            scaleY = scaleAnim
+        }
+        .pointerInput(Unit) {
+            var lastTapTime = 0L
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false)
+                isPressed = true
+                val downTime = System.currentTimeMillis()
+                val up = waitForUpOrCancellation()
+                isPressed = false
+                if (up != null && !up.isConsumed) {
+                    val upTime = System.currentTimeMillis()
+                    if (upTime - downTime < 400L) {
+                        up.consume()
+                        if (upTime - lastTapTime < 340L) {
+                            lastTapTime = 0L
+                            onDoubleTap()
+                        } else {
+                            lastTapTime = upTime
+                            expanded = !expanded
+                        }
+                    }
+                }
+            }
+        }
+
     val cardBaseModifier = modifier
         .fillMaxWidth()
-        .scale(scaleAnim)
+        .then(cardGestureModifier)
         .testTag("job_card_${job.id}")
         .animateContentSize(
             animationSpec = spring(
@@ -92,20 +124,6 @@ fun JobCardItem(
                 stiffness = Spring.StiffnessMediumLow
             )
         )
-        .pointerInput(expanded) {
-            detectTapGestures(
-                onPress = {
-                    isPressed = true
-                    try {
-                        awaitRelease()
-                    } finally {
-                        isPressed = false
-                    }
-                },
-                onTap = { expanded = !expanded },
-                onDoubleTap = { onDoubleTap() }
-            )
-        }
 
     // Shared bounds container transition wiring
     val sharedCardModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
@@ -123,10 +141,10 @@ fun JobCardItem(
     Surface(
         modifier = sharedCardModifier
             .shadow(
-                elevation = if (isDark) 8.dp else 4.dp,
+                elevation = if (tokens.isDark) 8.dp else 4.dp,
                 shape = cardShape,
-                spotColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0x1A000000),
-                ambientColor = if (isDark) Color.Black.copy(alpha = 0.3f) else Color(0x0A000000)
+                spotColor = if (tokens.isDark) Color.Black.copy(alpha = 0.5f) else Color(0x1A000000),
+                ambientColor = if (tokens.isDark) Color.Black.copy(alpha = 0.3f) else Color(0x0A000000)
             )
             .clip(cardShape)
             .border(width = 1.dp, brush = specularBorder, shape = cardShape),
@@ -136,16 +154,27 @@ fun JobCardItem(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(if (isDark) branding.surfaceGradientDark else branding.surfaceGradientLight)
+                .background(branding.getSurfaceGradient(tokens.isDark))
                 .padding(20.dp)
         ) {
+            // Subtle Official Watermark Motif integrated into the liquid-glass background
+            Icon(
+                imageVector = branding.watermarkIcon,
+                contentDescription = null,
+                tint = branding.getWatermarkColor(tokens.isDark),
+                modifier = Modifier
+                    .size(96.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 12.dp, y = (-6).dp)
+            )
+
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Header: Organization Seal, Name, Verification, Bookmark
+                // Header: Official Organization Emblem, Name, Verification, Bookmark
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Organization Emblem Badge
+                    // Organization Emblem Badge with authentic vector logo
                     val sealModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                         with(sharedTransitionScope) {
                             Modifier.sharedElement(
@@ -157,21 +186,20 @@ fun JobCardItem(
 
                     Box(
                         modifier = sealModifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isDark) branding.badgeSurfaceDark else branding.badgeSurfaceLight)
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(branding.getBadgeSurface(tokens.isDark))
                             .border(
                                 1.dp,
-                                if (isDark) branding.borderSpecularTop.copy(alpha = 0.5f) else branding.primaryColor.copy(alpha = 0.2f),
-                                RoundedCornerShape(12.dp)
+                                branding.getBorderSpecularTop(tokens.isDark),
+                                RoundedCornerShape(13.dp)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = branding.icon,
+                        Image(
+                            painter = painterResource(id = branding.logoResId),
                             contentDescription = branding.orgName,
-                            tint = if (isDark) branding.badgeTextDark else branding.primaryColor,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(30.dp)
                         )
                     }
 
@@ -184,7 +212,7 @@ fun JobCardItem(
                                 text = branding.orgName.uppercase(),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDark) branding.badgeTextDark else branding.primaryColor,
+                                color = branding.getBadgeText(tokens.isDark),
                                 letterSpacing = 0.5.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -193,14 +221,14 @@ fun JobCardItem(
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = "Verified Official",
-                                tint = if (isDark) AppColors.SuccessGreen else branding.primaryColor,
+                                tint = if (tokens.isDark) tokens.success else branding.getPrimaryColor(tokens.isDark),
                                 modifier = Modifier.size(13.dp)
                             )
                         }
                         Text(
                             text = branding.authoritySubtext,
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextSecondary,
+                            color = tokens.textTertiary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -214,7 +242,7 @@ fun JobCardItem(
                             .clip(CircleShape)
                             .background(
                                 if (isBookmarked) {
-                                    branding.primaryColor.copy(alpha = if (isDark) 0.25f else 0.12f)
+                                    branding.getPrimaryColor(tokens.isDark).copy(alpha = if (tokens.isDark) 0.25f else 0.12f)
                                 } else {
                                     Color.Transparent
                                 }
@@ -223,7 +251,7 @@ fun JobCardItem(
                         Icon(
                             imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
                             contentDescription = if (isBookmarked) "Remove Bookmark" else "Bookmark Job",
-                            tint = if (isBookmarked) branding.primaryColor else if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary,
+                            tint = if (isBookmarked) branding.getPrimaryColor(tokens.isDark) else tokens.textSecondary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -231,12 +259,16 @@ fun JobCardItem(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Job Title with Shared Element
+                // Job Title with Shared Bounds for perfectly continuous, flicker-free expansion
                 val titleModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                     with(sharedTransitionScope) {
-                        Modifier.sharedElement(
+                        Modifier.sharedBounds(
                             rememberSharedContentState(key = "job_title_${job.id}"),
-                            animatedVisibilityScope = animatedVisibilityScope
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            boundsTransform = { _, _ ->
+                                tween(durationMillis = 380, easing = FastOutSlowInEasing)
+                            },
+                            resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
                         )
                     }
                 } else Modifier
@@ -245,7 +277,7 @@ fun JobCardItem(
                     text = job.title,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary,
+                    color = tokens.textPrimary,
                     maxLines = if (expanded) Int.MAX_VALUE else 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 24.sp,
@@ -266,13 +298,13 @@ fun JobCardItem(
                         MetricPill(
                             icon = Icons.Default.WorkOutline,
                             label = job.level,
-                            isDark = isDark,
+                            tokens = tokens,
                             modifier = Modifier.weight(1f)
                         )
                         MetricPill(
                             icon = Icons.Default.LocationOn,
                             label = job.location,
-                            isDark = isDark,
+                            tokens = tokens,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -284,13 +316,13 @@ fun JobCardItem(
                         MetricPill(
                             icon = Icons.Default.Payments,
                             label = job.salary,
-                            isDark = isDark,
+                            tokens = tokens,
                             modifier = Modifier.weight(1.2f)
                         )
                         VacancyHighlightPill(
                             seats = job.seats,
-                            brandingColor = branding.primaryColor,
-                            isDark = isDark,
+                            brandingColor = branding.getPrimaryColor(tokens.isDark),
+                            tokens = tokens,
                             modifier = Modifier.weight(0.8f)
                         )
                     }
@@ -306,12 +338,12 @@ fun JobCardItem(
                     Text(
                         text = if (expanded) "Tap to collapse" else "Single tap for details • Double tap full view",
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextTertiary
+                        color = tokens.textTertiary
                     )
                     Icon(
                         imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = null,
-                        tint = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextTertiary,
+                        tint = tokens.textTertiary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -328,7 +360,7 @@ fun JobCardItem(
                             .padding(top = 16.dp)
                     ) {
                         HorizontalDivider(
-                            color = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle,
+                            color = tokens.borderSubtle,
                             thickness = 1.dp
                         )
 
@@ -337,7 +369,7 @@ fun JobCardItem(
                         // Application Deadline & Timeline Highlight
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isDark) AppColors.DarkSurfaceElevated else AppColors.LightSurfaceElevated,
+                            color = tokens.surfaceElevated,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -347,7 +379,7 @@ fun JobCardItem(
                                 Icon(
                                     imageVector = Icons.Default.Event,
                                     contentDescription = null,
-                                    tint = branding.primaryColor,
+                                    tint = branding.getPrimaryColor(tokens.isDark),
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -356,23 +388,23 @@ fun JobCardItem(
                                         text = "APPLICATION DEADLINE",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextTertiary
+                                        color = tokens.textTertiary
                                     )
                                     Text(
-                                        text = job.applicationClosingDate,
+                                        text = job.applicationClosingDate.ifBlank { "Not announced" },
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                                        color = tokens.textPrimary
                                     )
                                 }
                                 Spacer(modifier = Modifier.weight(1f))
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = AppColors.DangerRed.copy(alpha = if (isDark) 0.20f else 0.12f)
+                                    color = tokens.danger.copy(alpha = if (tokens.isDark) 0.20f else 0.12f)
                                 ) {
                                     Text(
                                         text = "Closing Soon",
-                                        color = AppColors.DangerRed,
+                                        color = tokens.danger,
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -388,13 +420,13 @@ fun JobCardItem(
                             text = "Reservation & Quota Scheme",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
+                            color = tokens.textSecondary
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = job.quota,
+                            text = job.quota.ifBlank { "Not available" },
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary,
+                            color = tokens.textPrimary,
                             lineHeight = 18.sp
                         )
 
@@ -405,13 +437,13 @@ fun JobCardItem(
                             text = "Eligibility Summary",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
+                            color = tokens.textSecondary
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Qualification: ${job.minQualification} • Age: ${job.ageLimit}",
+                            text = "Qualification: ${job.minQualification} • Age: ${job.ageLimit.ifBlank { "Not announced" }}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary,
+                            color = tokens.textPrimary,
                             lineHeight = 18.sp
                         )
 
@@ -432,7 +464,7 @@ fun JobCardItem(
                                 },
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = branding.primaryColor,
+                                    containerColor = branding.getPrimaryColor(tokens.isDark),
                                     contentColor = Color.White
                                 ),
                                 modifier = Modifier.weight(1.1f),
@@ -460,11 +492,11 @@ fun JobCardItem(
                                 },
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary
+                                    contentColor = tokens.textPrimary
                                 ),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,
-                                    if (isDark) AppColors.DarkBorder else AppColors.LightBorder
+                                    tokens.border
                                 ),
                                 modifier = Modifier.weight(0.9f),
                                 contentPadding = PaddingValues(vertical = 10.dp)
@@ -482,8 +514,8 @@ fun JobCardItem(
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.size(42.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = if (isDark) AppColors.DarkSurfaceElevated else AppColors.LightSurfaceElevated,
-                                    contentColor = branding.primaryColor
+                                    containerColor = tokens.surfaceElevated,
+                                    contentColor = branding.getPrimaryColor(tokens.isDark)
                                 )
                             ) {
                                 Icon(
@@ -504,12 +536,12 @@ fun JobCardItem(
 private fun MetricPill(
     icon: ImageVector,
     label: String,
-    isDark: Boolean,
+    tokens: AppThemeTokens,
     modifier: Modifier = Modifier
 ) {
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = if (isDark) AppColors.DarkSurfaceSubtle else AppColors.LightSurfaceSubtle,
+        color = tokens.surfaceSubtle,
         modifier = modifier
     ) {
         Row(
@@ -519,14 +551,14 @@ private fun MetricPill(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary,
+                tint = tokens.textSecondary,
                 modifier = Modifier.size(15.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary,
+                color = tokens.textPrimary,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -539,15 +571,15 @@ private fun MetricPill(
 private fun VacancyHighlightPill(
     seats: Int,
     brandingColor: Color,
-    isDark: Boolean,
+    tokens: AppThemeTokens,
     modifier: Modifier = Modifier
 ) {
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = brandingColor.copy(alpha = if (isDark) 0.18f else 0.10f),
+        color = brandingColor.copy(alpha = if (tokens.isDark) 0.20f else 0.12f),
         border = androidx.compose.foundation.BorderStroke(
             0.5.dp,
-            brandingColor.copy(alpha = if (isDark) 0.35f else 0.20f)
+            brandingColor.copy(alpha = if (tokens.isDark) 0.40f else 0.22f)
         ),
         modifier = modifier
     ) {
@@ -565,7 +597,7 @@ private fun VacancyHighlightPill(
             Text(
                 text = "$seats Seats",
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isDark) Color.White else brandingColor,
+                color = if (tokens.isDark) Color.White else brandingColor,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -577,7 +609,7 @@ private fun VacancyHighlightPill(
 @Composable
 fun JobCardSkeleton() {
     val transition = rememberInfiniteTransition(label = "shimmer")
-    val isDark = isSystemInDarkTheme()
+    val tokens = LocalAppThemeTokens.current
     val translateAnim by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1000f,
@@ -588,7 +620,7 @@ fun JobCardSkeleton() {
         label = "shimmer_float"
     )
 
-    val shimmerColors = if (isDark) {
+    val shimmerColors = if (tokens.isDark) {
         listOf(
             Color(0xFF1E232B),
             Color(0xFF282F3A),

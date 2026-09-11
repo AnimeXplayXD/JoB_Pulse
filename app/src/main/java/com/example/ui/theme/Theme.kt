@@ -61,5 +61,11 @@ fun MyApplicationTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+    val themeTokens = if (darkTheme) DarkThemeTokens else LightThemeTokens
+
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalAppThemeTokens provides themeTokens
+    ) {
+        MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+    }
 }

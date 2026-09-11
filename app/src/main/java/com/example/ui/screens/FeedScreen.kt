@@ -6,7 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.example.ui.theme.LocalAppThemeTokens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -42,7 +42,7 @@ fun FeedScreen(
     var selectedTag by remember { mutableStateOf("All") }
     val tags = listOf("All", "Admit Card", "Exam Date", "Notice", "Result", "Answer Key")
     val context = LocalContext.current
-    val isDark = isSystemInDarkTheme()
+    val tokens = LocalAppThemeTokens.current
 
     val filteredItems = remember(selectedTag) {
         if (selectedTag == "All") DummyFeedItems
@@ -60,10 +60,10 @@ fun FeedScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
-            color = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
+            color = tokens.surface,
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
-                if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+                tokens.borderSubtle
             )
         ) {
             Row(
@@ -73,7 +73,7 @@ fun FeedScreen(
                 Box(
                     modifier = Modifier
                         .size(38.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        .background(tokens.primary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -92,7 +92,7 @@ fun FeedScreen(
                             text = "LIVE GAZETTE BROADCAST",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = tokens.primary,
                             letterSpacing = 0.5.sp
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -105,7 +105,7 @@ fun FeedScreen(
                     Text(
                         text = "Real-time updates pulled from UPSC, SSC, RRB & State PSC portals",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary
+                        color = tokens.textSecondary
                     )
                 }
             }
@@ -116,7 +116,7 @@ fun FeedScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(tags) { tag ->
+            items(tags, key = { it }) { tag ->
                 val isSelected = selectedTag == tag
                 FilterChip(
                     selected = isSelected,
@@ -130,16 +130,16 @@ fun FeedScreen(
                     },
                     shape = RoundedCornerShape(10.dp),
                     colors = FilterChipDefaults.filterChipColors(
-                        containerColor = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
-                        labelColor = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary,
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        containerColor = tokens.surface,
+                        labelColor = tokens.textSecondary,
+                        selectedContainerColor = tokens.primary,
                         selectedLabelColor = Color.White
                     ),
                     border = FilterChipDefaults.filterChipBorder(
                         enabled = true,
                         selected = isSelected,
-                        borderColor = if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle,
-                        selectedBorderColor = MaterialTheme.colorScheme.primary,
+                        borderColor = tokens.borderSubtle,
+                        selectedBorderColor = tokens.primary,
                         borderWidth = 1.dp
                     )
                 )
@@ -153,7 +153,11 @@ fun FeedScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            items(filteredItems, key = { it.id }) { item ->
+            items(
+                items = filteredItems,
+                key = { it.id },
+                contentType = { "feed_card" }
+            ) { item ->
                 FeedCard(item = item, onOpenNotice = {
                     val intent = Intent(Intent.ACTION_VIEW, item.noticeUrl.toUri())
                     context.startActivity(intent)
@@ -168,24 +172,24 @@ fun FeedCard(
     item: FeedItem,
     onOpenNotice: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val tokens = LocalAppThemeTokens.current
     val tagColor = when (item.tag) {
         "Exam Date" -> Color(0xFF1976D2)
         "Admit Card" -> Color(0xFF2E7D32)
         "Result" -> Color(0xFFE65100)
         "Answer Key" -> Color(0xFF7B1FA2)
-        else -> MaterialTheme.colorScheme.primary
+        else -> tokens.primary
     }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        color = if (isDark) AppColors.DarkSurface else AppColors.LightSurface,
+        color = tokens.surface,
         border = androidx.compose.foundation.BorderStroke(
             0.8.dp,
-            if (isDark) AppColors.DarkBorderSubtle else AppColors.LightBorderSubtle
+            tokens.borderSubtle
         ),
-        shadowElevation = if (isDark) 4.dp else 2.dp
+        shadowElevation = if (tokens.isDark) 4.dp else 2.dp
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             // Header: Tag Badge & Time Ago
@@ -195,11 +199,11 @@ fun FeedCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    color = tagColor.copy(alpha = if (isDark) 0.20f else 0.12f),
+                    color = tagColor.copy(alpha = if (tokens.isDark) 0.20f else 0.12f),
                     shape = RoundedCornerShape(6.dp),
                     border = androidx.compose.foundation.BorderStroke(
                         0.5.dp,
-                        tagColor.copy(alpha = if (isDark) 0.40f else 0.25f)
+                        tagColor.copy(alpha = if (tokens.isDark) 0.40f else 0.25f)
                     )
                 ) {
                     Text(
@@ -217,13 +221,13 @@ fun FeedCard(
                         imageVector = Icons.Default.Schedule,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
-                        tint = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextTertiary
+                        tint = tokens.textTertiary
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = item.timeAgo,
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isDark) AppColors.DarkTextTertiary else AppColors.LightTextTertiary
+                        color = tokens.textTertiary
                     )
                 }
             }
@@ -234,7 +238,7 @@ fun FeedCard(
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = if (isDark) AppColors.DarkTextPrimary else AppColors.LightTextPrimary,
+                color = tokens.textPrimary,
                 lineHeight = 22.sp
             )
 
@@ -246,13 +250,13 @@ fun FeedCard(
                     imageVector = Icons.Default.AccountBalance,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = tokens.primary
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = item.organization,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = tokens.primary,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -263,7 +267,7 @@ fun FeedCard(
             Text(
                 text = item.summary,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (isDark) AppColors.DarkTextSecondary else AppColors.LightTextSecondary,
+                color = tokens.textSecondary,
                 lineHeight = 20.sp
             )
 
@@ -279,7 +283,7 @@ fun FeedCard(
                     shape = RoundedCornerShape(10.dp),
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        if (isDark) AppColors.DarkBorder else AppColors.LightBorder
+                        tokens.border
                     ),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                 ) {

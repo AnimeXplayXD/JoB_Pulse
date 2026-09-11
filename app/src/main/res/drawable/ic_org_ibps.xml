@@ -1,0 +1,27 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- IBPS Emerald Teal Disc Base -->
+    <path
+        android:fillColor="#004D40"
+        android:pathData="M24,2A22,22 0 1,0 46,24A22,22 0 0,0 24,2Z"/>
+    <path
+        android:strokeColor="#80CBC4"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M24,4A20,20 0 1,0 44,24A20,20 0 0,0 24,4Z"/>
+    <!-- Growth Grain Ears / Leaves (Twin wreaths) -->
+    <path
+        android:fillColor="#80CBC4"
+        android:pathData="M16,14c-2,3 0,6 0,6s3,-2 0,-6zM13,20c-2,3 0,6 0,6s3,-2 0,-6zM12,27c-2,3 0,6 0,6s3,-2 0,-6zM32,14c2,3 0,6 0,6s-3,-2 0,-6zM35,20c2,3 0,6 0,6s-3,-2 0,-6zM36,27c2,3 0,6 0,6s-3,-2 0,-6z"/>
+    <!-- Financial Currency & Integrity Vault Symbol / Lamp Base -->
+    <path
+        android:fillColor="#A7FFEB"
+        android:pathData="M18,34h12v4h-12zM20,26h8v8h-8z"/>
+    <!-- Central Flame of Knowledge / Awakening -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M24,11c2,3 0,7 -1,11c-1,-4 -3,-8 1,-11z"/>
+</vector>

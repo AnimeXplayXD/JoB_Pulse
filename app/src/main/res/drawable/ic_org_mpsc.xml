@@ -1,0 +1,36 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Historic Octagonal Rajmudra Outline of Maharashtra -->
+    <path
+        android:fillColor="#D35400"
+        android:pathData="M16,4h16l12,12v16l-12,12h-16l-12,-12v-16Z"/>
+    <path
+        android:strokeColor="#FFE082"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M17,6h14l11,11v14l-11,11h-14l-11,-11v-14Z"/>
+    <!-- Rising Sun over Sahyadri Hills -->
+    <path
+        android:fillColor="#FFE082"
+        android:pathData="M24,14A6,6 0 0,0 18,20h12A6,6 0 0,0 24,14Z"/>
+    <!-- Sun Rays -->
+    <path
+        android:strokeColor="#FFE082"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M24,10v3M17,14l2,2M31,14l-2,2M13,20h3M32,20h3"/>
+    <!-- Mountain Ridges / Fort Silhouette -->
+    <path
+        android:fillColor="#6E2C00"
+        android:pathData="M12,28L18,21L24,27L30,21L36,28v6h-24z"/>
+    <!-- Lamp of Knowledge / Diya -->
+    <path
+        android:fillColor="#FFE082"
+        android:pathData="M20,33c0,3 8,3 8,0h-8z"/>
+    <path
+        android:fillColor="#FF5722"
+        android:pathData="M23,29c1,-2 1,-2 1,-3c0,1 1,1 1,3z"/>
+</vector>

@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Authentic State Bank of India Logo (Iconic Solid Blue Circle with Keyhole) -->
+    <path
+        android:fillColor="#0072BC"
+        android:pathData="M24,4C12.95,4 4,12.95 4,24C4,35.05 12.95,44 24,44C35.05,44 44,35.05 44,24C44,12.95 35.05,4 24,4Z"/>
+    <!-- The White Center Disc -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,19A5,5 0 1,0 24,29A5,5 0 1,0 24,19Z"/>
+    <!-- The Keyhole Vertical Slot Opening at the Bottom -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M22.2,26h3.6v18h-3.6z"/>
+</vector>

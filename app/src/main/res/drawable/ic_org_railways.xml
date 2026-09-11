@@ -1,0 +1,39 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Outer Golden Crest Circle -->
+    <path
+        android:fillColor="#1B365D"
+        android:pathData="M24,2A22,22 0 1,0 46,24A22,22 0 0,0 24,2Z"/>
+    <path
+        android:strokeColor="#C59B27"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M24,4A20,20 0 1,0 44,24A20,20 0 0,0 24,4Z"/>
+    <!-- Indian Railways Iconic Steam Locomotive & Rail Tracks Wheel Motif -->
+    <!-- Circular Central Hub -->
+    <path
+        android:fillColor="#C59B27"
+        android:pathData="M24,14A10,10 0 1,0 34,24A10,10 0 0,0 24,14ZM24,18A6,6 0 1,1 18,24A6,6 0 0,1 24,18Z"/>
+    <!-- Locomotive Headlight & Boiler Silhouettes -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M21,21h6v6h-6z"/>
+    <!-- Wheel Spokes (8 Cardinal & Diagonal Spokes) -->
+    <path
+        android:strokeColor="#C59B27"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M24,7v7M24,34v7M7,24h7M34,24h7M12,12l5,5M31,31l5,5M36,12l-5,5M17,31l-5,5"/>
+    <!-- Rail Tracks Base Perspective -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:pathData="M18,37L22,41M26,37L30,41M16,42h16"/>
+    <!-- Stars Symbolizing Zonal Railways -->
+    <path
+        android:fillColor="#C59B27"
+        android:pathData="M24,5.5l0.8,1.6 1.8,0.3 -1.3,1.3 0.3,1.8 -1.6,-0.8 -1.6,0.8 0.3,-1.8 -1.3,-1.3 1.8,-0.3Z"/>
+</vector>
