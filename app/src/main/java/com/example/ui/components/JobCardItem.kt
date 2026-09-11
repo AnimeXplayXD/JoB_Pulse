@@ -48,7 +48,7 @@ fun JobCardItem(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val themeInfo = getThemeInfoForCategory(job.category)
+    val themeInfo = remember(job.category) { getThemeInfoForCategory(job.category) }
 
     val cardModifier = modifier
         .fillMaxWidth()
@@ -58,7 +58,7 @@ fun JobCardItem(
                 stiffness = Spring.StiffnessMedium
             )
         )
-        .pointerInput(Unit) {
+        .pointerInput(expanded) {
             detectTapGestures(
                 onTap = { expanded = !expanded },
                 onDoubleTap = { onDoubleTap() }

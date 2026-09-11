@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -47,6 +48,7 @@ typealias JobCategory = com.example.model.JobCategory
 typealias Job = com.example.model.Job
 typealias CategoryThemeInfo = com.example.model.CategoryThemeInfo
 
+@Immutable
 data class AppState(
     val selectedCategory: JobCategory = JobCategory.ALL,
     val selectedState: String = "All States",
@@ -255,10 +257,11 @@ fun GovtJobsApp(
     onRefresh: () -> Unit,
     onTabSelected: (NavTab) -> Unit = {}
 ) {
-    // Theme transition colors
-    val bgColor by animateColorAsState(targetValue = MaterialTheme.colorScheme.background, animationSpec = tween(500), label = "bg_color")
-    val topBarColor by animateColorAsState(targetValue = MaterialTheme.colorScheme.surface, animationSpec = tween(500), label = "topbar_color")
-    val onTopBarColor by animateColorAsState(targetValue = MaterialTheme.colorScheme.onSurface, animationSpec = tween(500), label = "ontopbar_color")
+    // Use theme colors directly — animateColorAsState on every frame is expensive
+    // and the MaterialTheme transition itself already provides a smooth switch.
+    val bgColor = MaterialTheme.colorScheme.background
+    val topBarColor = MaterialTheme.colorScheme.surface
+    val onTopBarColor = MaterialTheme.colorScheme.onSurface
 
     // Separate scroll states for each screen destination
     val homeListState = rememberLazyListState()
@@ -370,12 +373,11 @@ fun GovtJobsApp(
                             .padding(paddingValues)
                             .background(bgColor)
                     ) {
-                        // Screen Content with Animated Crossfade
-                        AnimatedContent(
+                        // Crossfade is much cheaper than AnimatedContent for full-screen tab
+                        // switches — it only cross-fades alpha instead of measuring both screens.
+                        Crossfade(
                             targetState = uiState.currentTab,
-                            transitionSpec = {
-                                fadeIn(animationSpec = tween(220)) togetherWith fadeOut(animationSpec = tween(180))
-                            },
+                            animationSpec = tween(220),
                             label = "tab_content_transition"
                         ) { activeTab ->
                             when (activeTab) {

@@ -2,6 +2,8 @@ package com.example.model
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -22,6 +24,7 @@ enum class JobCategory(val displayName: String) {
     DEFENSE("Defense")
 }
 
+@Immutable
 data class Job(
     val id: Int,
     val title: String,
@@ -48,6 +51,7 @@ data class Job(
     val otherInfo: String = ""
 )
 
+@Immutable
 data class FeedItem(
     val id: Int,
     val title: String,
@@ -59,6 +63,7 @@ data class FeedItem(
     val isUrgent: Boolean = false
 )
 
+@Stable
 data class UserProfile(
     val name: String = "Aarav Sharma",
     val email: String = "aarav.aspirant@govmail.in",
@@ -253,6 +258,7 @@ val DummyFeedItems = listOf(
     )
 )
 
+@Immutable
 data class CategoryThemeInfo(
     val primaryColor: Color,
     val gradient: Brush,

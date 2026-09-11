@@ -59,26 +59,30 @@ fun GlassyDock(
         ) {
             // Glassy Container
             val dockShape = RoundedCornerShape(32.dp)
-            val glassBackground = if (isDarkTheme) {
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFF1E222D).copy(alpha = 0.82f),
-                        Color(0xFF14171F).copy(alpha = 0.90f)
+            val glassBackground = remember(isDarkTheme) {
+                if (isDarkTheme) {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF1E222D).copy(alpha = 0.82f),
+                            Color(0xFF14171F).copy(alpha = 0.90f)
+                        )
                     )
-                )
-            } else {
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.88f),
-                        Color(0xFFF0F3F9).copy(alpha = 0.85f)
+                } else {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.88f),
+                            Color(0xFFF0F3F9).copy(alpha = 0.85f)
+                        )
                     )
-                )
+                }
             }
 
-            val glassBorderColor = if (isDarkTheme) {
-                Color.White.copy(alpha = 0.18f)
-            } else {
-                Color.White.copy(alpha = 0.85f)
+            val glassBorderColor = remember(isDarkTheme) {
+                if (isDarkTheme) {
+                    Color.White.copy(alpha = 0.18f)
+                } else {
+                    Color.White.copy(alpha = 0.85f)
+                }
             }
 
             Surface(
