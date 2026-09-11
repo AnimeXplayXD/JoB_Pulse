@@ -5,8 +5,8 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- JobPulse Adaptive Icon Foreground Layer -->
-    <!-- Optically centered at (54, 54) with maximum extent R <= 30.8dp for safe masking -->
+    <!-- Material You / Android 13+ Themed Icon Monochrome Layer -->
+    <!-- Single-color (pure white #FFFFFF) geometry allowing OS dynamic color tinting -->
 
     <!-- J Letterform: Clean monoline with smooth curved hook, stroke 5.5dp -->
     <path
@@ -32,8 +32,8 @@
         android:strokeLineJoin="round"
         android:pathData="M 26,53 L 36,53 L 44,62 L 54,39 L 63,63 L 69,53 L 73,53" />
 
-    <!-- Saffron Beacon Node: Signal terminus / discovery point (2.2dp clear negative space) -->
+    <!-- Beacon Node: Solid monochrome node for seamless dynamic color tinting -->
     <path
-        android:fillColor="#F4A261"
+        android:fillColor="#FFFFFF"
         android:pathData="M 81,49.2 A 3.8,3.8 0 1,0 81,56.8 A 3.8,3.8 0 1,0 81,49.2 Z" />
 </vector>

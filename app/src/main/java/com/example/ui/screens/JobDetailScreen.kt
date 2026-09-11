@@ -56,6 +56,7 @@ fun JobDetailScreen(
 
     with(sharedTransitionScope) {
         Scaffold(
+            containerColor = tokens.background,
             topBar = {
                 TopAppBar(
                     title = {
@@ -95,7 +96,7 @@ fun JobDetailScreen(
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_SUBJECT, "${job.title} - ${job.organization}")
-                                putExtra(Intent.EXTRA_TEXT, "Govt Jobs Alert: ${job.title} (${job.seats} Vacancies) announced by ${job.organization}. Apply at: ${job.applyUrl ?: job.officialSiteUrl}")
+                                putExtra(Intent.EXTRA_TEXT, "JobPulse Alert: ${job.title} (${job.seats} Vacancies) announced by ${job.organization}. Apply at: ${job.applyUrl ?: job.officialSiteUrl}")
                             }
                             context.startActivity(Intent.createChooser(shareIntent, "Share Job Announcement"))
                         }) {
@@ -200,7 +201,7 @@ fun JobDetailScreen(
                             rememberSharedContentState(key = "job_card_bounds_${job.id}"),
                             animatedVisibilityScope = animatedVisibilityScope,
                             boundsTransform = { _, _ ->
-                                tween(durationMillis = 380, easing = FastOutSlowInEasing)
+                                tween(durationMillis = 320, easing = FastOutSlowInEasing)
                             }
                         )
                         .background(branding.getSurfaceGradient(tokens.isDark))
@@ -289,7 +290,7 @@ fun JobDetailScreen(
                                 rememberSharedContentState(key = "job_title_${job.id}"),
                                 animatedVisibilityScope = animatedVisibilityScope,
                                 boundsTransform = { _, _ ->
-                                    tween(durationMillis = 380, easing = FastOutSlowInEasing)
+                                    tween(durationMillis = 320, easing = FastOutSlowInEasing)
                                 },
                                 resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
                             )

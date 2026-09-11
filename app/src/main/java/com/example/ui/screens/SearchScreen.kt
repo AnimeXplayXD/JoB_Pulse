@@ -35,6 +35,7 @@ fun SearchScreen(
     onToggleBookmark: (Int) -> Unit,
     onJobDoubleTap: (Job) -> Unit,
     modifier: Modifier = Modifier,
+    allJobs: List<Job> = DummyJobs,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
@@ -44,8 +45,8 @@ fun SearchScreen(
     var onlyApplyActive by remember { mutableStateOf(false) }
     val tokens = LocalAppThemeTokens.current
 
-    val searchResults = remember(query, selectedCategory, selectedQualification, onlyApplyActive) {
-        DummyJobs.filter { job ->
+    val searchResults = remember(query, selectedCategory, selectedQualification, onlyApplyActive, allJobs) {
+        allJobs.filter { job ->
             val matchQuery = if (query.isBlank()) true else {
                 job.title.contains(query, ignoreCase = true) ||
                 job.organization.contains(query, ignoreCase = true) ||

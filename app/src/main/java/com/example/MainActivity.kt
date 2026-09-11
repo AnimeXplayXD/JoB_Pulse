@@ -1,9 +1,14 @@
 package com.example
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -24,8 +29,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -39,6 +46,7 @@ import com.example.ui.screens.JobDetailScreen
 import com.example.ui.screens.SearchScreen
 import com.example.ui.theme.AppColors
 import com.example.ui.theme.MyApplicationTheme
+import com.example.util.NotificationHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -56,48 +64,84 @@ data class AppState(
     val selectedCategory: JobCategory = JobCategory.ALL,
     val selectedState: String = "All States",
     val searchQuery: String = "",
+    val allJobs: List<Job> = emptyList(),
     val jobs: List<Job> = emptyList(),
     val bookmarkedJobIds: Set<Int> = emptySet(),
     val showBookmarksOnly: Boolean = false,
     val isLoading: Boolean = false,
     val isDarkTheme: Boolean = true,
     val showAlertsDialog: Boolean = false,
-    val currentTab: NavTab = NavTab.HOME
+    val currentTab: NavTab = NavTab.HOME,
+    val isOffline: Boolean = false,
+    val syncMessage: String? = null
 )
 
-class MainViewModel : ViewModel() {
+class MainViewModel(
+    private val repository: com.example.data.repository.JobRepository = if (try { JobPulseApp.instance; true } catch (e: Exception) { false }) {
+        com.example.data.repository.JobRepositoryProvider.getRepository(JobPulseApp.instance)
+    } else {
+        object : com.example.data.repository.JobRepository {
+            override fun getJobsStream() = kotlinx.coroutines.flow.flowOf(DummyJobs)
+            override fun getJobByIdStream(id: Int) = kotlinx.coroutines.flow.flowOf(DummyJobs.find { it.id == id })
+            override fun getOrganisationsStream() = kotlinx.coroutines.flow.flowOf(emptyList<com.example.model.Organisation>())
+            override fun searchJobsStream(query: String) = kotlinx.coroutines.flow.flowOf(DummyJobs)
+            override suspend fun refresh(force: Boolean) = Result.success(Unit)
+        }
+    }
+) : ViewModel() {
     private val _uiState = MutableStateFlow(AppState())
     val uiState: StateFlow<AppState> = _uiState.asStateFlow()
 
     init {
-        loadJobs(isRefresh = false)
+        observeJobs()
+        syncData(force = false)
     }
 
-    private fun loadJobs(isRefresh: Boolean) {
+    private fun observeJobs() {
         viewModelScope.launch {
-            if (!isRefresh) {
-                _uiState.update { it.copy(isLoading = true, jobs = emptyList()) }
-            } else {
-                _uiState.update { it.copy(isLoading = true) }
-            }
-            delay(1000) // Smooth realistic data refresh
-            _uiState.update { state ->
-                state.copy(
-                    isLoading = false,
-                    jobs = filterJobs(
-                        state.selectedCategory,
-                        state.selectedState,
-                        state.searchQuery,
-                        state.showBookmarksOnly,
-                        state.bookmarkedJobIds
+            repository.getJobsStream().collect { liveJobs ->
+                val sourceJobs = if (liveJobs.isEmpty()) DummyJobs else liveJobs
+                _uiState.update { state ->
+                    state.copy(
+                        allJobs = sourceJobs,
+                        jobs = filterJobs(
+                            sourceJobs = sourceJobs,
+                            category = state.selectedCategory,
+                            stateName = state.selectedState,
+                            query = state.searchQuery,
+                            showBookmarksOnly = state.showBookmarksOnly,
+                            bookmarks = state.bookmarkedJobIds
+                        )
                     )
-                )
+                }
+            }
+        }
+    }
+
+    private fun syncData(force: Boolean) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val result = repository.refresh(force = force)
+            _uiState.update { state ->
+                if (result.isSuccess) {
+                    state.copy(
+                        isLoading = false,
+                        isOffline = false,
+                        syncMessage = null
+                    )
+                } else {
+                    state.copy(
+                        isLoading = false,
+                        isOffline = true,
+                        syncMessage = "Offline Mode • Serving Cached Notices"
+                    )
+                }
             }
         }
     }
 
     fun onRefresh() {
-        loadJobs(isRefresh = true)
+        syncData(force = true)
     }
 
     fun onSelectTab(tab: NavTab) {
@@ -114,11 +158,12 @@ class MainViewModel : ViewModel() {
             state.copy(
                 bookmarkedJobIds = newBookmarks,
                 jobs = filterJobs(
-                    state.selectedCategory,
-                    state.selectedState,
-                    state.searchQuery,
-                    state.showBookmarksOnly,
-                    newBookmarks
+                    sourceJobs = state.allJobs,
+                    category = state.selectedCategory,
+                    stateName = state.selectedState,
+                    query = state.searchQuery,
+                    showBookmarksOnly = state.showBookmarksOnly,
+                    bookmarks = newBookmarks
                 )
             )
         }
@@ -131,11 +176,12 @@ class MainViewModel : ViewModel() {
                 showBookmarksOnly = newShowBookmarksOnly,
                 currentTab = NavTab.HOME,
                 jobs = filterJobs(
-                    state.selectedCategory,
-                    state.selectedState,
-                    state.searchQuery,
-                    newShowBookmarksOnly,
-                    state.bookmarkedJobIds
+                    sourceJobs = state.allJobs,
+                    category = state.selectedCategory,
+                    stateName = state.selectedState,
+                    query = state.searchQuery,
+                    showBookmarksOnly = newShowBookmarksOnly,
+                    bookmarks = state.bookmarkedJobIds
                 )
             )
         }
@@ -154,11 +200,12 @@ class MainViewModel : ViewModel() {
             state.copy(
                 searchQuery = query,
                 jobs = filterJobs(
-                    state.selectedCategory,
-                    state.selectedState,
-                    query,
-                    state.showBookmarksOnly,
-                    state.bookmarkedJobIds
+                    sourceJobs = state.allJobs,
+                    category = state.selectedCategory,
+                    stateName = state.selectedState,
+                    query = query,
+                    showBookmarksOnly = state.showBookmarksOnly,
+                    bookmarks = state.bookmarkedJobIds
                 )
             )
         }
@@ -171,11 +218,12 @@ class MainViewModel : ViewModel() {
                 selectedCategory = category,
                 selectedState = newSelectedState,
                 jobs = filterJobs(
-                    category,
-                    newSelectedState,
-                    state.searchQuery,
-                    state.showBookmarksOnly,
-                    state.bookmarkedJobIds
+                    sourceJobs = state.allJobs,
+                    category = category,
+                    stateName = newSelectedState,
+                    query = state.searchQuery,
+                    showBookmarksOnly = state.showBookmarksOnly,
+                    bookmarks = state.bookmarkedJobIds
                 )
             )
         }
@@ -186,34 +234,38 @@ class MainViewModel : ViewModel() {
             state.copy(
                 selectedState = stateName,
                 jobs = filterJobs(
-                    state.selectedCategory,
-                    stateName,
-                    state.searchQuery,
-                    state.showBookmarksOnly,
-                    state.bookmarkedJobIds
+                    sourceJobs = state.allJobs,
+                    category = state.selectedCategory,
+                    stateName = stateName,
+                    query = state.searchQuery,
+                    showBookmarksOnly = state.showBookmarksOnly,
+                    bookmarks = state.bookmarkedJobIds
                 )
             )
         }
     }
 
     private fun filterJobs(
+        sourceJobs: List<Job>,
         category: JobCategory,
         stateName: String,
         query: String,
         showBookmarksOnly: Boolean,
         bookmarks: Set<Int>
     ): List<Job> {
-        return DummyJobs.filter { job ->
+        val jobsToFilter = if (sourceJobs.isEmpty()) DummyJobs else sourceJobs
+        return jobsToFilter.filter { job ->
             val categoryMatch = if (category == JobCategory.ALL) true else job.category == category
             val stateMatch = if (category == JobCategory.STATE && stateName != "All States") {
-                job.state == stateName
+                job.state == stateName || job.location.contains(stateName, ignoreCase = true)
             } else {
                 true
             }
             val queryMatch = if (query.isBlank()) true else {
                 job.title.contains(query, ignoreCase = true) ||
                 job.organization.contains(query, ignoreCase = true) ||
-                job.level.contains(query, ignoreCase = true)
+                job.level.contains(query, ignoreCase = true) ||
+                job.location.contains(query, ignoreCase = true)
             }
             val bookmarkMatch = if (showBookmarksOnly) bookmarks.contains(job.id) else true
 
@@ -262,6 +314,7 @@ fun GovtJobsApp(
     onRefresh: () -> Unit,
     onTabSelected: (NavTab) -> Unit = {}
 ) {
+    val context = LocalContext.current
     val tokens = com.example.ui.theme.LocalAppThemeTokens.current
     val isDark = tokens.isDark
     val bgColor = tokens.background
@@ -280,6 +333,49 @@ fun GovtJobsApp(
     // Lifted state for double-tap job detail transition
     var selectedJobForDetail by remember { mutableStateOf<Job?>(null) }
 
+    // Navigation back stack for fluid, non-destructive system back gestures
+    val tabBackStack = remember { mutableStateListOf(NavTab.HOME) }
+
+    val handleTabSelection: (NavTab) -> Unit = { tab ->
+        if (tab != uiState.currentTab) {
+            if (tab == NavTab.HOME) {
+                tabBackStack.clear()
+                tabBackStack.add(NavTab.HOME)
+            } else {
+                tabBackStack.remove(tab)
+                tabBackStack.add(tab)
+            }
+            onTabSelected(tab)
+        }
+    }
+
+    // Android System Gesture / Back Handler
+    val canHandleBack = selectedJobForDetail != null || uiState.showBookmarksOnly || tabBackStack.size > 1
+    BackHandler(enabled = canHandleBack) {
+        when {
+            selectedJobForDetail != null -> {
+                selectedJobForDetail = null
+            }
+            uiState.showBookmarksOnly -> {
+                onToggleBookmarksView()
+            }
+            tabBackStack.size > 1 -> {
+                tabBackStack.removeAt(tabBackStack.lastIndex)
+                val previousTab = tabBackStack.last()
+                onTabSelected(previousTab)
+            }
+        }
+    }
+
+    // Contextual Notification Permission Launcher for Android 13+ (API 33+)
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            NotificationHelper.postSubscriptionConfirmedNotification(context)
+        }
+    }
+
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -295,176 +391,202 @@ fun GovtJobsApp(
     }
 
     val screenTitle = when (uiState.currentTab) {
-        NavTab.HOME -> if (uiState.showBookmarksOnly) "Saved Jobs" else "Govt Jobs LIVE"
+        NavTab.HOME -> if (uiState.showBookmarksOnly) "Saved Jobs" else "JobPulse"
         NavTab.FEED -> "Live Announcements"
         NavTab.SEARCH -> "Targeted Search"
         NavTab.ACCOUNT -> "Aspirant Profile"
     }
 
-    SharedTransitionLayout {
-        AnimatedContent(
-            targetState = selectedJobForDetail,
-            label = "main_or_detail",
-            transitionSpec = {
-                fadeIn(animationSpec = tween(380, easing = FastOutSlowInEasing)) togetherWith
-                fadeOut(animationSpec = tween(300, easing = FastOutSlowInEasing))
-            }
-        ) { jobDetail ->
-            if (jobDetail != null) {
-                JobDetailScreen(
-                    job = jobDetail,
-                    onBack = { selectedJobForDetail = null },
-                    isBookmarked = uiState.bookmarkedJobIds.contains(jobDetail.id),
-                    onBookmarkToggle = { onBookmarkToggle(jobDetail.id) },
-                    sharedTransitionScope = this@SharedTransitionLayout,
-                    animatedVisibilityScope = this@AnimatedContent
-                )
-            } else {
-                Scaffold(
-                    modifier = Modifier.nestedScroll(nestedScrollConnection),
-                    topBar = {
-                        TopAppBar(
-                            title = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = screenTitle,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    if (uiState.currentTab == NavTab.HOME && !uiState.showBookmarksOnly) {
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(6.dp),
-                                            color = AppColors.LiveRed
-                                        ) {
+    // Wrap in solid background container to eliminate transparent crossfade artifacts
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor)
+    ) {
+        SharedTransitionLayout {
+            AnimatedContent(
+                targetState = selectedJobForDetail,
+                label = "main_or_detail",
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(320, easing = FastOutSlowInEasing)) togetherWith
+                    fadeOut(animationSpec = tween(320, easing = FastOutSlowInEasing))
+                }
+            ) { jobDetail ->
+                if (jobDetail != null) {
+                    JobDetailScreen(
+                        job = jobDetail,
+                        onBack = { selectedJobForDetail = null },
+                        isBookmarked = uiState.bookmarkedJobIds.contains(jobDetail.id),
+                        onBookmarkToggle = { onBookmarkToggle(jobDetail.id) },
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@AnimatedContent
+                    )
+                } else {
+                    Scaffold(
+                        modifier = Modifier.nestedScroll(nestedScrollConnection),
+                        containerColor = bgColor,
+                        topBar = {
+                            TopAppBar(
+                                title = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (uiState.currentTab == NavTab.HOME && !uiState.showBookmarksOnly) {
+                                            com.example.ui.components.JobPulseLogo(symbolSize = 28.dp, textSize = 22.sp)
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Surface(
+                                                color = if (uiState.isOffline) Color(0xFFE65100) else Color(0xFFD32F2F),
+                                                shape = RoundedCornerShape(4.dp)
+                                            ) {
+                                                Text(
+                                                    text = if (uiState.isOffline) "OFFLINE" else "LIVE",
+                                                    color = Color.White,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        } else {
                                             Text(
-                                                text = "LIVE",
-                                                color = Color.White,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                text = screenTitle,
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold
                                             )
                                         }
                                     }
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = topBarColor,
+                                    titleContentColor = onTopBarColor
+                                ),
+                                actions = {
+                                    IconButton(onClick = { onToggleAlerts(true) }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Notifications,
+                                            contentDescription = "Alerts",
+                                            tint = onTopBarColor
+                                        )
+                                    }
+                                    IconButton(onClick = onToggleBookmarksView) {
+                                        Icon(
+                                            imageVector = if (uiState.showBookmarksOnly) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
+                                            contentDescription = "Bookmarks",
+                                            tint = if (uiState.showBookmarksOnly) MaterialTheme.colorScheme.primary else onTopBarColor
+                                        )
+                                    }
+                                    IconButton(onClick = onToggleTheme) {
+                                        Icon(
+                                            imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                            contentDescription = "Theme",
+                                            tint = onTopBarColor
+                                        )
+                                    }
                                 }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = topBarColor,
-                                titleContentColor = onTopBarColor
-                            ),
-                            actions = {
-                                IconButton(onClick = { onToggleAlerts(true) }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Notifications,
-                                        contentDescription = "Alerts",
-                                        tint = onTopBarColor
-                                    )
-                                }
-                                IconButton(onClick = onToggleBookmarksView) {
-                                    Icon(
-                                        imageVector = if (uiState.showBookmarksOnly) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
-                                        contentDescription = "Bookmarks",
-                                        tint = if (uiState.showBookmarksOnly) MaterialTheme.colorScheme.primary else onTopBarColor
-                                    )
-                                }
-                                IconButton(onClick = onToggleTheme) {
-                                    Icon(
-                                        imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                        contentDescription = "Theme",
-                                        tint = onTopBarColor
-                                    )
-                                }
-                            }
-                        )
-                    }
-                ) { paddingValues ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .background(bgColor)
-                    ) {
-                        Crossfade(
-                            targetState = uiState.currentTab,
-                            animationSpec = tween(220),
-                            label = "tab_content_transition"
-                        ) { activeTab ->
-                            when (activeTab) {
-                                NavTab.HOME -> {
-                                    HomeScreen(
-                                        listState = homeListState,
-                                        searchQuery = uiState.searchQuery,
-                                        onSearchQueryChanged = onSearchQueryChanged,
-                                        selectedCategory = uiState.selectedCategory,
-                                        onCategorySelected = onCategorySelected,
-                                        selectedState = uiState.selectedState,
-                                        onStateSelected = onStateSelected,
-                                        jobs = uiState.jobs,
-                                        bookmarkedJobIds = uiState.bookmarkedJobIds,
-                                        onBookmarkToggle = onBookmarkToggle,
-                                        isLoading = uiState.isLoading,
-                                        showBookmarksOnly = uiState.showBookmarksOnly,
-                                        onRefresh = onRefresh,
-                                        onNavigateToSearch = { onTabSelected(NavTab.SEARCH) },
-                                        onJobDoubleTap = { selectedJobForDetail = it },
-                                        sharedTransitionScope = this@SharedTransitionLayout,
-                                        animatedVisibilityScope = this@AnimatedContent
-                                    )
-                                }
-                                NavTab.FEED -> {
-                                    FeedScreen(listState = feedListState)
-                                }
-                                NavTab.SEARCH -> {
-                                    SearchScreen(
-                                        listState = searchListState,
-                                        bookmarkedIds = uiState.bookmarkedJobIds,
-                                        onToggleBookmark = onBookmarkToggle,
-                                        onJobDoubleTap = { selectedJobForDetail = it },
-                                        sharedTransitionScope = this@SharedTransitionLayout,
-                                        animatedVisibilityScope = this@AnimatedContent
-                                    )
-                                }
-                                NavTab.ACCOUNT -> {
-                                    AccountScreen(
-                                        listState = accountListState,
-                                        bookmarkedCount = uiState.bookmarkedJobIds.size,
-                                        onViewBookmarks = onToggleBookmarksView,
-                                        isDarkTheme = uiState.isDarkTheme,
-                                        onToggleTheme = onToggleTheme
-                                    )
-                                }
-                            }
+                            )
                         }
+                    ) { paddingValues ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
+                                .background(bgColor)
+                        ) {
+                            Crossfade(
+                                targetState = uiState.currentTab,
+                                animationSpec = tween(220),
+                                label = "tab_content_transition"
+                            ) { activeTab ->
+                                when (activeTab) {
+                                    NavTab.HOME -> {
+                                        HomeScreen(
+                                            listState = homeListState,
+                                            searchQuery = uiState.searchQuery,
+                                            onSearchQueryChanged = onSearchQueryChanged,
+                                            selectedCategory = uiState.selectedCategory,
+                                            onCategorySelected = onCategorySelected,
+                                            selectedState = uiState.selectedState,
+                                            onStateSelected = onStateSelected,
+                                            jobs = uiState.jobs,
+                                            bookmarkedJobIds = uiState.bookmarkedJobIds,
+                                            onBookmarkToggle = onBookmarkToggle,
+                                            isLoading = uiState.isLoading,
+                                            showBookmarksOnly = uiState.showBookmarksOnly,
+                                            onRefresh = onRefresh,
+                                            onNavigateToSearch = { handleTabSelection(NavTab.SEARCH) },
+                                            onJobDoubleTap = { selectedJobForDetail = it },
+                                            sharedTransitionScope = this@SharedTransitionLayout,
+                                            animatedVisibilityScope = this@AnimatedContent
+                                        )
+                                    }
+                                    NavTab.FEED -> {
+                                        FeedScreen(listState = feedListState)
+                                    }
+                                    NavTab.SEARCH -> {
+                                        SearchScreen(
+                                            listState = searchListState,
+                                            bookmarkedIds = uiState.bookmarkedJobIds,
+                                            onToggleBookmark = onBookmarkToggle,
+                                            onJobDoubleTap = { selectedJobForDetail = it },
+                                            allJobs = uiState.allJobs.ifEmpty { DummyJobs },
+                                            sharedTransitionScope = this@SharedTransitionLayout,
+                                            animatedVisibilityScope = this@AnimatedContent
+                                        )
+                                    }
+                                    NavTab.ACCOUNT -> {
+                                        AccountScreen(
+                                            listState = accountListState,
+                                            bookmarkedCount = uiState.bookmarkedJobIds.size,
+                                            onViewBookmarks = onToggleBookmarksView,
+                                            isDarkTheme = uiState.isDarkTheme,
+                                            onToggleTheme = onToggleTheme
+                                        )
+                                    }
+                                }
+                            }
 
-                        // Floating Glassy Dock
-                        GlassyDock(
-                            currentTab = uiState.currentTab,
-                            onTabSelected = { selectedTab ->
-                                isDockVisible = true
-                                onTabSelected(selectedTab)
-                            },
-                            isVisible = isDockVisible,
-                            isDarkTheme = uiState.isDarkTheme,
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        )
+                            // Floating Glassy Dock
+                            GlassyDock(
+                                currentTab = uiState.currentTab,
+                                onTabSelected = { selectedTab ->
+                                    isDockVisible = true
+                                    handleTabSelection(selectedTab)
+                                },
+                                isVisible = isDockVisible,
+                                isDarkTheme = uiState.isDarkTheme,
+                                modifier = Modifier.align(Alignment.BottomCenter)
+                            )
+                        }
                     }
                 }
             }
-        }
-        
-        // Job Alert Subscription Dialog
-        if (uiState.showAlertsDialog) {
-            AlertDialog(
-                onDismissRequest = { onToggleAlerts(false) },
-                title = { Text("Set Live Job Alerts", fontWeight = FontWeight.Bold) },
-                text = { Text("Receive immediate push notifications whenever a new All-India or State Government vacancy matches your targeted categories and qualifications?") },
-                confirmButton = {
-                    Button(onClick = { onToggleAlerts(false) }) { Text("Subscribe Now") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { onToggleAlerts(false) }) { Text("Cancel") }
-                }
-            )
+            
+            // Job Alert Subscription Dialog
+            if (uiState.showAlertsDialog) {
+                AlertDialog(
+                    onDismissRequest = { onToggleAlerts(false) },
+                    title = { Text("JobPulse Live Alerts", fontWeight = FontWeight.Bold) },
+                    text = { Text("Receive immediate push notifications whenever newly announced Central or State Government vacancies match your targeted categories and qualifications?") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                onToggleAlerts(false)
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    if (NotificationHelper.hasNotificationPermission(context)) {
+                                        NotificationHelper.postSubscriptionConfirmedNotification(context)
+                                    } else {
+                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                } else {
+                                    NotificationHelper.postSubscriptionConfirmedNotification(context)
+                                }
+                            }
+                        ) {
+                            Text("Subscribe Now")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { onToggleAlerts(false) }) { Text("Cancel") }
+                    }
+                )
+            }
         }
     }
 }

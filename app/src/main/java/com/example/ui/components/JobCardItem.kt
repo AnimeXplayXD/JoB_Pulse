@@ -86,10 +86,6 @@ fun JobCardItem(
     // Zero-latency gesture detector: immediate tactile response + immediate expansion on single tap,
     // while preserving seamless double-tap detection.
     val cardGestureModifier = Modifier
-        .graphicsLayer {
-            scaleX = scaleAnim
-            scaleY = scaleAnim
-        }
         .pointerInput(Unit) {
             var lastTapTime = 0L
             awaitEachGesture {
@@ -132,7 +128,7 @@ fun JobCardItem(
                 rememberSharedContentState(key = "job_card_bounds_${job.id}"),
                 animatedVisibilityScope = animatedVisibilityScope,
                 boundsTransform = { _, _ ->
-                    tween(durationMillis = 380, easing = FastOutSlowInEasing)
+                    tween(durationMillis = 320, easing = FastOutSlowInEasing)
                 }
             )
         }
@@ -154,6 +150,10 @@ fun JobCardItem(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = scaleAnim
+                    scaleY = scaleAnim
+                }
                 .background(branding.getSurfaceGradient(tokens.isDark))
                 .padding(20.dp)
         ) {
@@ -266,7 +266,7 @@ fun JobCardItem(
                             rememberSharedContentState(key = "job_title_${job.id}"),
                             animatedVisibilityScope = animatedVisibilityScope,
                             boundsTransform = { _, _ ->
-                                tween(durationMillis = 380, easing = FastOutSlowInEasing)
+                                tween(durationMillis = 320, easing = FastOutSlowInEasing)
                             },
                             resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds()
                         )

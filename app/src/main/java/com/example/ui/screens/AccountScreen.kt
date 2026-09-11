@@ -361,18 +361,22 @@ fun AccountScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            Text(
-                                text = "JoB_Pulse Gazette Engine",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = tokens.textPrimary
-                            )
-                            Text(
-                                text = "v2.0 • Real-time All-India Quota & Recruitment Tracker",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = tokens.textTertiary
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            com.example.ui.components.JobPulseSymbol(size = 32.dp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "JobPulse Platform",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = tokens.textPrimary
+                                )
+                                Text(
+                                    text = "v2.5 • Modern Indian Recruitment Intelligence",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = tokens.textTertiary
+                                )
+                            }
                         }
 
                         Surface(

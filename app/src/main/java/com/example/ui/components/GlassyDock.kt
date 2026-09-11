@@ -5,6 +5,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -20,11 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -45,6 +48,17 @@ fun GlassyDock(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalAppThemeTokens.current
+    var isPillHeld by remember { mutableStateOf(false) }
+
+    // Dock subtly breathes when active pill is held or dragged
+    val dockScale by animateFloatAsState(
+        targetValue = if (isPillHeld) 1.012f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "dock_scale"
+    )
 
     AnimatedVisibility(
         visible = isVisible,
@@ -61,17 +75,21 @@ fun GlassyDock(
         Box(
             modifier = Modifier
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 10.dp)
+                .padding(horizontal = 24.dp, vertical = 6.dp)
                 .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            val dockShape = RoundedCornerShape(26.dp)
+            val dockShape = RoundedCornerShape(22.dp)
 
             // Multi-layer liquid glass surface with specular highlight and ambient depth
             Surface(
                 modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = dockScale
+                        scaleY = dockScale
+                    }
                     .shadow(
-                        elevation = if (tokens.isDark) 20.dp else 10.dp,
+                        elevation = if (isPillHeld) 18.dp else if (tokens.isDark) 14.dp else 8.dp,
                         shape = dockShape,
                         spotColor = tokens.glassShadow,
                         ambientColor = tokens.glassShadow.copy(alpha = 0.35f)
@@ -86,7 +104,9 @@ fun GlassyDock(
                 LiquidGlassDockRow(
                     currentTab = currentTab,
                     onTabSelected = onTabSelected,
-                    tokens = tokens
+                    tokens = tokens,
+                    isHeld = isPillHeld,
+                    onHeldChanged = { isPillHeld = it }
                 )
             }
         }
@@ -97,12 +117,15 @@ fun GlassyDock(
 private fun LiquidGlassDockRow(
     currentTab: NavTab,
     onTabSelected: (NavTab) -> Unit,
-    tokens: AppThemeTokens
+    tokens: AppThemeTokens,
+    isHeld: Boolean,
+    onHeldChanged: (Boolean) -> Unit
 ) {
     val density = LocalDensity.current
     val tabBoundsMap = remember { mutableStateMapOf<NavTab, Rect>() }
 
-    val currentTargetRect = tabBoundsMap[currentTab]
+    // Track horizontal drag position
+    var dragPositionX by remember { mutableFloatStateOf(0f) }
 
     // Track movement direction to create fluid liquid elongation/contraction
     var previousTabIndex by remember { mutableIntStateOf(currentTab.ordinal) }
@@ -111,22 +134,39 @@ private fun LiquidGlassDockRow(
         previousTabIndex = currentTab.ordinal
     }
 
-    // Asymmetric leading/trailing edge interpolation for fluid liquid glass flow:
-    // Leading edge expands swiftly toward target; trailing edge lags and contracts smoothly.
-    val leadingDuration = 260
-    val trailingDuration = 330
-
-    val leftSpec = remember(isMovingRight) {
-        tween<Float>(
-            durationMillis = if (isMovingRight) trailingDuration else leadingDuration,
-            easing = FastOutSlowInEasing
-        )
+    // Single continuous interpolated target bounds for zero jump between tabs
+    val currentTargetRect = remember(isHeld, dragPositionX, currentTab, tabBoundsMap.toMap()) {
+        if (isHeld && tabBoundsMap.size >= 4) {
+            computePillRectForX(dragPositionX, tabBoundsMap, currentTab)
+        } else {
+            tabBoundsMap[currentTab]
+        }
     }
-    val rightSpec = remember(isMovingRight) {
-        tween<Float>(
-            durationMillis = if (isMovingRight) leadingDuration else trailingDuration,
-            easing = FastOutSlowInEasing
-        )
+
+    // When held/dragged: spring follows finger with instant physical responsiveness;
+    // When released / tapped: fluid asymmetric liquid glass easing.
+    val leadingDuration = 240
+    val trailingDuration = 300
+
+    val leftSpec: AnimationSpec<Float> = remember(isHeld, isMovingRight) {
+        if (isHeld) {
+            spring<Float>(stiffness = Spring.StiffnessHigh, dampingRatio = Spring.DampingRatioNoBouncy)
+        } else {
+            tween<Float>(
+                durationMillis = if (isMovingRight) trailingDuration else leadingDuration,
+                easing = FastOutSlowInEasing
+            )
+        }
+    }
+    val rightSpec: AnimationSpec<Float> = remember(isHeld, isMovingRight) {
+        if (isHeld) {
+            spring<Float>(stiffness = Spring.StiffnessHigh, dampingRatio = Spring.DampingRatioNoBouncy)
+        } else {
+            tween<Float>(
+                durationMillis = if (isMovingRight) leadingDuration else trailingDuration,
+                easing = FastOutSlowInEasing
+            )
+        }
     }
 
     val animatedLeft by animateFloatAsState(
@@ -141,20 +181,76 @@ private fun LiquidGlassDockRow(
     )
     val animatedTop by animateFloatAsState(
         targetValue = currentTargetRect?.top ?: 0f,
-        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        animationSpec = tween(180, easing = FastOutSlowInEasing),
         label = "liquid_pill_top"
     )
     val animatedBottom by animateFloatAsState(
         targetValue = currentTargetRect?.bottom ?: 0f,
-        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        animationSpec = tween(180, easing = FastOutSlowInEasing),
         label = "liquid_pill_bottom"
+    )
+
+    // Subtle pill enlargement while being held or dragged
+    val pillScale by animateFloatAsState(
+        targetValue = if (isHeld) 1.05f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "pill_scale"
     )
 
     Box(
         modifier = Modifier
             .background(tokens.glassBackground)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .padding(horizontal = 6.dp, vertical = 4.dp)
             .fillMaxWidth()
+            .pointerInput(tabBoundsMap, currentTab) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val initialX = down.position.x
+                    val currentPillRect = tabBoundsMap[currentTab]
+
+                    // Check if touch down is on or near the active pill
+                    val isTouchNearPill = currentPillRect != null &&
+                        initialX in (currentPillRect.left - 24f)..(currentPillRect.right + 24f)
+
+                    if (isTouchNearPill) {
+                        onHeldChanged(true)
+                        dragPositionX = initialX
+                    }
+
+                    var isDragStarted = false
+                    val pointerId = down.id
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.find { it.id == pointerId } ?: break
+                        if (!change.pressed) {
+                            // Touch released
+                            if (isDragStarted) {
+                                change.consume()
+                                val nearestTab = findNearestTab(dragPositionX, tabBoundsMap, currentTab)
+                                onTabSelected(nearestTab)
+                            }
+                            break
+                        }
+
+                        val currentX = change.position.x
+                        val distance = kotlin.math.abs(currentX - initialX)
+
+                        if (!isDragStarted && distance > viewConfiguration.touchSlop) {
+                            isDragStarted = true
+                            onHeldChanged(true)
+                        }
+
+                        if (isDragStarted) {
+                            change.consume()
+                            dragPositionX = currentX
+                        }
+                    }
+                    onHeldChanged(false)
+                }
+            }
     ) {
         // Single unified flowing liquid-glass indicator pill
         if (currentTargetRect != null && animatedRight > animatedLeft) {
@@ -163,33 +259,39 @@ private fun LiquidGlassDockRow(
             val pillOffsetX = with(density) { animatedLeft.toDp() }
             val pillOffsetY = with(density) { animatedTop.toDp() }
 
-            val pillShape = RoundedCornerShape(18.dp)
+            val pillShape = RoundedCornerShape(16.dp)
 
             // Multi-stop liquid-glass indicator brush
-            val pillBrush = remember(tokens.isDark, tokens.primary) {
+            val pillBrush = remember(tokens.isDark, tokens.primary, isHeld) {
                 if (tokens.isDark) {
                     Brush.verticalGradient(
                         colors = listOf(
-                            tokens.primary.copy(alpha = 0.28f),
-                            tokens.primary.copy(alpha = 0.14f)
+                            tokens.primary.copy(alpha = if (isHeld) 0.35f else 0.28f),
+                            tokens.primary.copy(alpha = if (isHeld) 0.18f else 0.14f)
                         )
                     )
                 } else {
                     Brush.verticalGradient(
                         colors = listOf(
-                            tokens.primary.copy(alpha = 0.16f),
-                            tokens.primary.copy(alpha = 0.08f)
+                            tokens.primary.copy(alpha = if (isHeld) 0.22f else 0.16f),
+                            tokens.primary.copy(alpha = if (isHeld) 0.11f else 0.08f)
                         )
                     )
                 }
             }
 
-            val pillSpecularBorder = remember(tokens.isDark, tokens.primary) {
+            val pillSpecularBorder = remember(tokens.isDark, tokens.primary, isHeld) {
                 Brush.verticalGradient(
                     colors = if (tokens.isDark) {
-                        listOf(tokens.primary.copy(alpha = 0.55f), tokens.borderSubtle)
+                        listOf(
+                            tokens.primary.copy(alpha = if (isHeld) 0.70f else 0.55f),
+                            tokens.borderSubtle
+                        )
                     } else {
-                        listOf(Color.White.copy(alpha = 0.9f), tokens.primary.copy(alpha = 0.22f))
+                        listOf(
+                            Color.White.copy(alpha = 0.95f),
+                            tokens.primary.copy(alpha = if (isHeld) 0.32f else 0.22f)
+                        )
                     }
                 )
             }
@@ -198,6 +300,10 @@ private fun LiquidGlassDockRow(
                 modifier = Modifier
                     .offset(x = pillOffsetX, y = pillOffsetY)
                     .size(width = pillWidth, height = pillHeight)
+                    .graphicsLayer {
+                        scaleX = pillScale
+                        scaleY = pillScale
+                    }
                     .clip(pillShape)
                     .background(pillBrush)
                     .border(width = 1.dp, brush = pillSpecularBorder, shape = pillShape)
@@ -274,13 +380,13 @@ private fun DockDestinationItem(
             .onGloballyPositioned { coordinates ->
                 onPositioned(coordinates.boundsInParent())
             }
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 14.dp, vertical = 9.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -292,13 +398,13 @@ private fun DockDestinationItem(
                     imageVector = if (isSelected) selectedIcon else unselectedIcon,
                     contentDescription = tab.title,
                     tint = if (isSelected) activeColor else inactiveColor,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(20.dp)
                 )
 
                 if (hasBadge && !isSelected) {
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .size(6.dp)
                             .align(Alignment.TopEnd)
                             .background(tokens.livePulse, CircleShape)
                     )
@@ -311,12 +417,13 @@ private fun DockDestinationItem(
                 exit = fadeOut(tween(120)) + shrinkHorizontally(tween(160))
             ) {
                 Row {
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
                     Text(
                         text = tab.title,
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                            fontSize = 12.sp,
+                            letterSpacing = 0.2.sp
                         ),
                         color = activeColor,
                         maxLines = 1
@@ -325,4 +432,66 @@ private fun DockDestinationItem(
             }
         }
     }
+}
+
+/**
+ * Computes a smooth, continuous interpolated [Rect] for any pointer [x] coordinate along the dock,
+ * eliminating jumps between tabs.
+ */
+private fun computePillRectForX(
+    x: Float,
+    tabBoundsMap: Map<NavTab, Rect>,
+    currentTab: NavTab
+): Rect {
+    val tabs = listOf(NavTab.HOME, NavTab.FEED, NavTab.SEARCH, NavTab.ACCOUNT)
+    val rects = tabs.map { tabBoundsMap[it] }
+    if (rects.any { it == null }) {
+        return tabBoundsMap[currentTab] ?: Rect.Zero
+    }
+    val nonNullRects = rects.filterNotNull()
+    val centers = nonNullRects.map { (it.left + it.right) / 2f }
+
+    if (x <= centers.first()) {
+        return nonNullRects.first()
+    }
+    if (x >= centers.last()) {
+        return nonNullRects.last()
+    }
+
+    for (i in 0 until centers.size - 1) {
+        val c1 = centers[i]
+        val c2 = centers[i + 1]
+        if (x in c1..c2) {
+            val fraction = ((x - c1) / (c2 - c1)).coerceIn(0f, 1f)
+            val r1 = nonNullRects[i]
+            val r2 = nonNullRects[i + 1]
+            return Rect(
+                left = r1.left + (r2.left - r1.left) * fraction,
+                top = r1.top + (r2.top - r1.top) * fraction,
+                right = r1.right + (r2.right - r1.right) * fraction,
+                bottom = r1.bottom + (r2.bottom - r1.bottom) * fraction
+            )
+        }
+    }
+    return tabBoundsMap[currentTab] ?: Rect.Zero
+}
+
+/**
+ * Finds the nearest tab destination based on the pointer release coordinate [x].
+ */
+private fun findNearestTab(
+    x: Float,
+    tabBoundsMap: Map<NavTab, Rect>,
+    currentTab: NavTab
+): NavTab {
+    val tabs = listOf(NavTab.HOME, NavTab.FEED, NavTab.SEARCH, NavTab.ACCOUNT)
+    return tabs.minByOrNull { tab ->
+        val rect = tabBoundsMap[tab]
+        if (rect != null) {
+            val centerX = (rect.left + rect.right) / 2f
+            kotlin.math.abs(centerX - x)
+        } else {
+            Float.MAX_VALUE
+        }
+    } ?: currentTab
 }

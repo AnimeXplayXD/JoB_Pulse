@@ -316,7 +316,25 @@ object OrgBrandingRegistry {
         watermarkColorLight = Color(0xFF2C3E50).copy(alpha = 0.04f)
     )
 
+    fun forOrganisationId(orgId: String?): OrgBranding? {
+        if (orgId == null) return null
+        return when (orgId.lowercase()) {
+            "sbi" -> SBI
+            "rrb", "railways", "railway" -> RAILWAYS
+            "ssc" -> SSC
+            "upsc" -> UPSC
+            "police" -> POLICE
+            "defense", "defence", "mod" -> DEFENSE
+            "mpsc" -> MPSC
+            "bpsc" -> BPSC
+            "ibps" -> IBPS
+            "central", "goi" -> CENTRAL_DEFAULT
+            else -> null
+        }
+    }
+
     fun forJob(job: Job): OrgBranding {
+        forOrganisationId(job.organisationId)?.let { return it }
         val org = job.organization.lowercase()
         val title = job.title.lowercase()
         return when {

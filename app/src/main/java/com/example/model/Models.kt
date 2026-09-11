@@ -65,20 +65,45 @@ data class CutoffEntry(
     val qualifyingMarks: String = "40%"
 )
 
+enum class RecruitmentStatus(val displayName: String) {
+    DRAFT("Draft Notice"),
+    PUBLISHED("Notification Gazetted"),
+    APPLICATION_OPEN("Application Window Open"),
+    CLOSING_SOON("Application Closing Soon"),
+    APPLICATION_CLOSED("Application Window Closed"),
+    EXAM_SCHEDULED("Exam Dates Announced"),
+    ADMIT_CARD_RELEASED("Admit Card Live"),
+    EXAM_COMPLETED("Exam Concluded"),
+    RESULT_RELEASED("Merit List Published"),
+    RECRUITMENT_COMPLETED("Recruitment Cycle Concluded")
+}
+
+@Immutable
+data class Organisation(
+    val id: String,
+    val name: String,
+    val shortName: String,
+    val type: String? = null,
+    val officialWebsite: String? = null,
+    val officialRecruitmentUrl: String? = null,
+    val brandingId: String? = null,
+    val lastVerifiedAt: String? = null
+)
+
 @Immutable
 data class Job(
     val id: Int,
     val title: String,
-    val category: JobCategory,
-    val organization: String,
-    val level: String,
-    val salary: String,
-    val location: String,
-    val seats: Int,
-    val quota: String,
-    val applyUrl: String?,
-    val noticeUrl: String,
-    val officialSiteUrl: String,
+    val category: JobCategory = JobCategory.CENTRAL,
+    val organization: String = "Government of India",
+    val level: String = "Gazetted Officer / Group A & B",
+    val salary: String = "Pay Level 7 (₹44,900 - ₹1,42,400)",
+    val location: String = "All India Cadre",
+    val seats: Int = 100,
+    val quota: String = "UR / OBC / SC / ST / EWS",
+    val applyUrl: String? = null,
+    val noticeUrl: String = "https://example.gov.in/notice.pdf",
+    val officialSiteUrl: String = "https://example.gov.in",
     val state: String? = null,
     val minQualification: String = "Graduate",
     // Extended Full-Screen Fields
@@ -101,7 +126,39 @@ data class Job(
     val categoryQuotas: List<VacancyCategoryQuota> = emptyList(),
     val examStages: List<ExamStageInfo> = emptyList(),
     val cutoffBenchmarks: List<CutoffEntry> = emptyList(),
-    val syllabusTopics: List<String> = emptyList()
+    val syllabusTopics: List<String> = emptyList(),
+    // Evolved Live Recruitment Architecture Fields
+    val organisationId: String? = null,
+    val shortDescription: String? = null,
+    val description: String? = null,
+    val employmentType: String? = null,
+    val department: String? = null,
+    val vacancies: Int = seats,
+    val eligibility: String = minQualification,
+    val educationalQualification: String = minQualification,
+    val minAge: Int? = null,
+    val maxAge: Int? = null,
+    val ageRelaxation: String? = null,
+    val payScale: String? = salary,
+    val applicationEndDate: String = applicationClosingDate,
+    val admitCardDate: String? = null,
+    val resultDate: String? = null,
+    val examMode: String? = null,
+    val examLocation: String? = null,
+    val postingLocation: String? = location,
+    val selectionProcess: List<String> = emptyList(),
+    val syllabus: List<String> = syllabusTopics,
+    val reservationInformation: String? = seatsAndReservation,
+    val cutoffInformation: String? = cutOffInfo,
+    val applicationUrl: String? = applyUrl,
+    val officialNotificationUrl: String = noticeUrl,
+    val officialSourceUrl: String = officialSiteUrl,
+    val sourceName: String = organization,
+    val isOfficialSource: Boolean = true,
+    val status: RecruitmentStatus = RecruitmentStatus.APPLICATION_OPEN,
+    val publishedAt: String? = applicationStartDate,
+    val lastUpdatedAt: String? = null,
+    val lastVerifiedAt: String? = null
 )
 
 @Immutable

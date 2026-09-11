@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+
+    <!-- J Letterform -->
+    <path
+        android:strokeColor="#0B1B3D"
+        android:strokeWidth="2.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 17,10 L 17,28 C 17,34 9,34 9,28 L 9,25" />
+
+    <!-- P Letterform -->
+    <path
+        android:strokeColor="#0B1B3D"
+        android:strokeWidth="2.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 24,10 L 24,37 M 24,10 L 31,10 C 37,10 37,22 31,22 L 24,22" />
+
+    <!-- Pulse Signal Waveform -->
+    <path
+        android:strokeColor="#0B1B3D"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 7,22 L 14,22 L 18,27 L 24,14 L 29,29 L 33,22 L 36,22" />
+
+    <!-- Amber Beacon Node -->
+    <path
+        android:fillColor="#FF9933"
+        android:pathData="M 40,22 A 2.5,2.5 0 1,0 40,22.01 Z" />
+</vector>
