@@ -36,9 +36,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import com.example.model.*
+import com.example.ui.components.CircularRevealTheme
 import com.example.ui.components.GlassyDock
 import com.example.ui.components.JobCardItem
+import com.example.ui.components.LocalCircularReveal
 import com.example.ui.screens.AccountScreen
 import com.example.ui.screens.FeedScreen
 import com.example.ui.screens.HomeScreen
@@ -282,19 +286,23 @@ class MainActivity : ComponentActivity() {
             val viewModel: MainViewModel = viewModel()
             val uiState by viewModel.uiState.collectAsState()
 
-            MyApplicationTheme(darkTheme = uiState.isDarkTheme) {
-                GovtJobsApp(
-                    uiState = uiState,
-                    onCategorySelected = viewModel::onCategorySelected,
-                    onStateSelected = viewModel::onStateSelected,
-                    onSearchQueryChanged = viewModel::onSearchQueryChanged,
-                    onBookmarkToggle = viewModel::onToggleBookmark,
-                    onToggleBookmarksView = viewModel::onToggleBookmarksView,
-                    onToggleTheme = viewModel::onToggleTheme,
-                    onToggleAlerts = viewModel::onToggleAlerts,
-                    onRefresh = viewModel::onRefresh,
-                    onTabSelected = viewModel::onSelectTab
-                )
+            CircularRevealTheme(
+                onToggleTheme = viewModel::onToggleTheme
+            ) {
+                MyApplicationTheme(darkTheme = uiState.isDarkTheme) {
+                    GovtJobsApp(
+                        uiState = uiState,
+                        onCategorySelected = viewModel::onCategorySelected,
+                        onStateSelected = viewModel::onStateSelected,
+                        onSearchQueryChanged = viewModel::onSearchQueryChanged,
+                        onBookmarkToggle = viewModel::onToggleBookmark,
+                        onToggleBookmarksView = viewModel::onToggleBookmarksView,
+                        onToggleTheme = viewModel::onToggleTheme,
+                        onToggleAlerts = viewModel::onToggleAlerts,
+                        onRefresh = viewModel::onRefresh,
+                        onTabSelected = viewModel::onSelectTab
+                    )
+                }
             }
         }
     }
@@ -318,6 +326,8 @@ fun GovtJobsApp(
     val tokens = com.example.ui.theme.LocalAppThemeTokens.current
     val isDark = tokens.isDark
     val bgColor = tokens.background
+    val revealController = LocalCircularReveal.current
+    var themeButtonCenter by remember { mutableStateOf<Offset?>(null) }
     val topBarColor = tokens.surface
     val onTopBarColor = tokens.textPrimary
 
@@ -472,7 +482,23 @@ fun GovtJobsApp(
                                             tint = if (uiState.showBookmarksOnly) MaterialTheme.colorScheme.primary else onTopBarColor
                                         )
                                     }
-                                    IconButton(onClick = onToggleTheme) {
+                                    IconButton(
+                                        onClick = {
+                                            if (revealController != null) {
+                                                revealController.toggleTheme(themeButtonCenter)
+                                            } else {
+                                                onToggleTheme()
+                                            }
+                                        },
+                                        modifier = Modifier.onGloballyPositioned { coordinates ->
+                                            val pos = coordinates.positionInRoot()
+                                            val size = coordinates.size
+                                            themeButtonCenter = Offset(
+                                                pos.x + size.width / 2f,
+                                                pos.y + size.height / 2f
+                                            )
+                                        }
+                                    ) {
                                         Icon(
                                             imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
                                             contentDescription = "Theme",

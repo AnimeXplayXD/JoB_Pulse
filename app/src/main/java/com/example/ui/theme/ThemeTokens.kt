@@ -86,14 +86,14 @@ val DarkThemeTokens = AppThemeTokens(
     borderSubtle = Color(0x1AFFFFFF),
     divider = Color(0x1F8B949E),
     
-    primary = Color(0xFF388BFD),
+    primary = Color(0xFF2F81F7),
     onPrimary = Color.White,
     primaryContainer = Color(0xFF1F3A60),
     onPrimaryContainer = Color(0xFFD0E2FF),
     accent = Color(0xFFD29922),
     success = Color(0xFF2DA44E),
     danger = Color(0xFFCF222E),
-    livePulse = Color(0xFFFF3B30),
+    livePulse = Color(0xFFE53935),
     iconTint = Color(0xFFF0F6FC),
     scrim = Color(0xB3000000)
 )

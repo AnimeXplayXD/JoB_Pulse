@@ -92,7 +92,7 @@ object NotificationHelper {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID_ALERTS)
             .setSmallIcon(R.drawable.ic_jobpulse_notification)
             .setContentTitle("JobPulse • Live Alerts Activated")
-            .setContentText("You will receive timely alerts for gazetted Central & State vacancies.")
+            .setContentText("You will receive timely alerts for verified Central & State vacancies.")
             .setStyle(
                 NotificationCompat.BigTextStyle()
                     .bigText("JobPulse alert subscription active. You will receive notifications when new recruitment notices match your preferences.")

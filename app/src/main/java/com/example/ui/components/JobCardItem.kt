@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.example.model.Job
+import com.example.model.RecruitmentStatus
 import com.example.ui.theme.AppThemeTokens
 import com.example.ui.theme.LocalAppThemeTokens
 import com.example.ui.theme.OrgBrandingRegistry
@@ -60,9 +61,10 @@ fun JobCardItem(
 
     // Authentic Organization Branding & Palette
     val branding = remember(job.organization, job.title) { OrgBrandingRegistry.forJob(job) }
+    val effectiveStatus = remember(job.status, job.applicationClosingDate) { job.getEffectiveStatus() }
 
     // Subtle tactile scale spring on tap/press using graphicsLayer for zero recomposition jank
-    val scaleAnim by animateFloatAsState(
+    val scaleAnim = animateFloatAsState(
         targetValue = if (isPressed) 0.985f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
@@ -86,7 +88,7 @@ fun JobCardItem(
     // Zero-latency gesture detector: immediate tactile response + immediate expansion on single tap,
     // while preserving seamless double-tap detection.
     val cardGestureModifier = Modifier
-        .pointerInput(Unit) {
+        .pointerInput(job.id) {
             var lastTapTime = 0L
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
@@ -114,12 +116,6 @@ fun JobCardItem(
         .fillMaxWidth()
         .then(cardGestureModifier)
         .testTag("job_card_${job.id}")
-        .animateContentSize(
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessMediumLow
-            )
-        )
 
     // Shared bounds container transition wiring
     val sharedCardModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
@@ -151,8 +147,8 @@ fun JobCardItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .graphicsLayer {
-                    scaleX = scaleAnim
-                    scaleY = scaleAnim
+                    scaleX = scaleAnim.value
+                    scaleY = scaleAnim.value
                 }
                 .background(branding.getSurfaceGradient(tokens.isDark))
                 .padding(20.dp)
@@ -398,18 +394,10 @@ fun JobCardItem(
                                     )
                                 }
                                 Spacer(modifier = Modifier.weight(1f))
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = tokens.danger.copy(alpha = if (tokens.isDark) 0.20f else 0.12f)
-                                ) {
-                                    Text(
-                                        text = "Closing Soon",
-                                        color = tokens.danger,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
+                                RecruitmentStatusBadge(
+                                    status = effectiveStatus,
+                                    tokens = tokens
+                                )
                             }
                         }
 
@@ -654,3 +642,92 @@ fun JobCardSkeleton() {
         )
     }
 }
+
+@Composable
+fun RecruitmentStatusBadge(
+    status: RecruitmentStatus,
+    tokens: AppThemeTokens,
+    modifier: Modifier = Modifier
+) {
+    val (label, bg, fg) = when (status) {
+        RecruitmentStatus.APPLICATION_OPEN -> Triple(
+            "Applications Open",
+            tokens.success.copy(alpha = if (tokens.isDark) 0.20f else 0.12f),
+            tokens.success
+        )
+        RecruitmentStatus.CLOSING_SOON -> Triple(
+            "Closing Soon",
+            tokens.danger.copy(alpha = if (tokens.isDark) 0.20f else 0.12f),
+            tokens.danger
+        )
+        RecruitmentStatus.APPLICATION_CLOSED -> Triple(
+            "Closed",
+            tokens.textTertiary.copy(alpha = if (tokens.isDark) 0.20f else 0.12f),
+            tokens.textSecondary
+        )
+        RecruitmentStatus.PUBLISHED -> Triple(
+            "Notification Released",
+            tokens.primary.copy(alpha = if (tokens.isDark) 0.20f else 0.12f),
+            tokens.primary
+        )
+        RecruitmentStatus.EXAM_SCHEDULED -> Triple(
+            "Exam Scheduled",
+            tokens.accent.copy(alpha = if (tokens.isDark) 0.20f else 0.12f),
+            tokens.accent
+        )
+        RecruitmentStatus.ADMIT_CARD_RELEASED -> Triple(
+            "Admit Card Live",
+            tokens.accent.copy(alpha = if (tokens.isDark) 0.20f else 0.12f),
+            tokens.accent
+        )
+        RecruitmentStatus.RESULT_RELEASED -> Triple(
+            "Results Declared",
+            tokens.primary.copy(alpha = if (tokens.isDark) 0.20f else 0.12f),
+            tokens.primary
+        )
+        else -> Triple(
+            status.displayName,
+            tokens.surfaceElevated,
+            tokens.textSecondary
+        )
+    }
+
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = bg,
+        modifier = modifier
+    ) {
+        Text(
+            text = label,
+            color = fg,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+        )
+    }
+}
+
+internal fun Job.getEffectiveStatus(): RecruitmentStatus {
+    if (status != RecruitmentStatus.APPLICATION_OPEN) return status
+    return try {
+        val format = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.ENGLISH)
+        val now = java.util.Calendar.getInstance().time
+        val closingDate = format.parse(applicationClosingDate.trim())
+        if (closingDate != null) {
+            val diffMs = closingDate.time - now.time
+            val diffDays = diffMs / (1000 * 60 * 60 * 24)
+            if (diffDays < 0) {
+                RecruitmentStatus.APPLICATION_CLOSED
+            } else if (diffDays <= 7) {
+                RecruitmentStatus.CLOSING_SOON
+            } else {
+                RecruitmentStatus.APPLICATION_OPEN
+            }
+        } else {
+            status
+        }
+    } catch (_: Exception) {
+        status
+    }
+}
+

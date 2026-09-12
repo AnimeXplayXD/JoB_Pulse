@@ -89,7 +89,7 @@ fun FeedScreen(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "LIVE GAZETTE BROADCAST",
+                            text = "LIVE RECRUITMENT BROADCAST",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = tokens.primary,

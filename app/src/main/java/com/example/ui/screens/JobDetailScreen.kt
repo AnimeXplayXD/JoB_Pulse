@@ -114,7 +114,7 @@ fun JobDetailScreen(
                 )
             },
             bottomBar = {
-                // Sticky Action Surface with direct Application & Gazette PDF triggers
+                // Sticky Action Surface with direct Application & Official PDF triggers
                 Surface(
                     color = tokens.surface,
                     shadowElevation = 16.dp,
@@ -154,7 +154,7 @@ fun JobDetailScreen(
                                 modifier = Modifier.size(17.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Gazette PDF", fontWeight = FontWeight.SemiBold)
+                            Text("Official PDF", fontWeight = FontWeight.SemiBold)
                         }
 
                         Button(
@@ -258,11 +258,15 @@ fun JobDetailScreen(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Surface(
                                         shape = RoundedCornerShape(6.dp),
-                                        color = tokens.success.copy(alpha = if (tokens.isDark) 0.20f else 0.12f)
+                                        color = if (job.isOfficialSource) {
+                                            tokens.success.copy(alpha = if (tokens.isDark) 0.20f else 0.12f)
+                                        } else {
+                                            tokens.accent.copy(alpha = if (tokens.isDark) 0.20f else 0.12f)
+                                        }
                                     ) {
                                         Text(
-                                            text = "VERIFIED GAZETTE",
-                                            color = tokens.success,
+                                            text = if (job.isOfficialSource) "OFFICIAL NOTIFICATION" else "AGGREGATED NOTICE",
+                                            color = if (job.isOfficialSource) tokens.success else tokens.accent,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -384,7 +388,7 @@ fun JobDetailScreen(
                     // Job Overview & Role Details Section
                     RecruitmentSection(title = "Job Overview & Role Details", icon = Icons.Default.Info, tokens = tokens) {
                         Text(
-                            text = job.jobOverview.ifEmpty { "Official recruitment bulletin under ${job.organization}. Candidates are advised to review the gazetted eligibility standards." },
+                            text = job.jobOverview.ifEmpty { "No official overview provided in the notification. Refer to the official PDF for full details." },
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.textPrimary,
                             lineHeight = 22.sp
@@ -407,7 +411,7 @@ fun JobDetailScreen(
                     // Location & Posting
                     RecruitmentSection(title = "Location & Posting Jurisdiction", icon = Icons.Default.LocationCity, tokens = tokens) {
                         Text(
-                            text = job.locationDetails.ifEmpty { "Posting jurisdiction: ${job.location.ifBlank { "All India" }}. Service transfer conditions governed by authority regulations." },
+                            text = job.locationDetails.ifEmpty { "Posting jurisdiction: ${job.location.ifBlank { "All India" }}." },
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.textPrimary,
                             lineHeight = 22.sp
@@ -429,7 +433,7 @@ fun JobDetailScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = job.selectionStagesSummary.ifBlank { "Written Screening ➔ Document Verification & Medicals" },
+                                text = job.selectionStagesSummary.ifBlank { "Not announced in preliminary notification" },
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = branding.getBadgeText(tokens.isDark),
@@ -458,7 +462,7 @@ fun JobDetailScreen(
                             MissingDataNotice(
                                 title = "Examination Pattern",
                                 statusText = "Not announced",
-                                description = "The scheme of examination and test structure have not yet been released in the official gazette."
+                                description = "The scheme of examination and test structure have not yet been released in the official notification."
                             )
                         }
                     }
@@ -558,7 +562,7 @@ fun JobDetailScreen(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                         ) {
                             Text(
-                                text = "Transparency Notice: Official gazetted cutoffs are verified from commissioning notices. Estimates are projections based on competitive mock data.",
+                                text = "Transparency Notice: Official cutoffs are verified from official recruitment notices. Estimates are projections based on competitive mock data.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = tokens.textSecondary,
                                 modifier = Modifier.padding(10.dp),
@@ -591,7 +595,7 @@ fun JobDetailScreen(
                     // Additional Information / Conditions
                     RecruitmentSection(title = "Special Service Conditions & Medicals", icon = Icons.Default.MedicalInformation, tokens = tokens) {
                         Text(
-                            text = job.otherInfo.ifEmpty { "Standard governmental service conditions apply as per gazetted service rules." },
+                            text = job.otherInfo.ifEmpty { "No additional service conditions or medical guidelines specified in this notice." },
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.textPrimary,
                             lineHeight = 22.sp

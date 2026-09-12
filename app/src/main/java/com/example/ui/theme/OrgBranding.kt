@@ -292,7 +292,7 @@ object OrgBrandingRegistry {
 
     private val CENTRAL_DEFAULT = OrgBranding(
         orgName = "Central Government of India",
-        authoritySubtext = "Official Gazette Recruitment Notice",
+        authoritySubtext = "Official Recruitment Notification",
         sealInitials = "GOI",
         logoResId = R.drawable.ic_org_central,
         watermarkIcon = Icons.Default.Work,

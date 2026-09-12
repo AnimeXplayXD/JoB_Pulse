@@ -51,7 +51,7 @@ data class ExamStageInfo(
 )
 
 enum class CutoffType(val label: String, val indicatorColor: Long) {
-    OFFICIAL("Official Gazetted", 0xFF2DA44E),
+    OFFICIAL("Official Notification", 0xFF2DA44E),
     HISTORICAL("Historical Prev Year", 0xFF0969DA),
     ESTIMATED("Community Estimate", 0xFFD29922)
 }
@@ -67,7 +67,7 @@ data class CutoffEntry(
 
 enum class RecruitmentStatus(val displayName: String) {
     DRAFT("Draft Notice"),
-    PUBLISHED("Notification Gazetted"),
+    PUBLISHED("Notification Published"),
     APPLICATION_OPEN("Application Window Open"),
     CLOSING_SOON("Application Closing Soon"),
     APPLICATION_CLOSED("Application Window Closed"),
@@ -96,7 +96,7 @@ data class Job(
     val title: String,
     val category: JobCategory = JobCategory.CENTRAL,
     val organization: String = "Government of India",
-    val level: String = "Gazetted Officer / Group A & B",
+    val level: String = "Group A & B Cadre",
     val salary: String = "Pay Level 7 (₹44,900 - ₹1,42,400)",
     val location: String = "All India Cadre",
     val seats: Int = 100,
@@ -227,7 +227,7 @@ val DummyJobs = listOf(
         applicationFee = "₹500 (₹400 refunded after appearing in CBT-1 for UR/OBC) • ₹250 for SC/ST/Women",
         selectionStagesSummary = "CBT-1 ➔ CBT-2 ➔ Typing / CBAT Aptitude ➔ DV & Medical",
         milestones = listOf(
-            TimelineMilestone("Official Gazette Release", "14 Sep 2026", isPassed = true),
+            TimelineMilestone("Official Notification Release", "14 Sep 2026", isPassed = true),
             TimelineMilestone("Online Registration Starts", "16 Sep 2026", isPassed = true),
             TimelineMilestone("Registration Closes", "25 Oct 2026", isCrucial = true),
             TimelineMilestone("City Intimation Slip", "05 Jan 2027"),
@@ -410,7 +410,7 @@ val DummyJobs = listOf(
         applicationFee = "₹100 (Free for Women, SC, ST, PwBD, Ex-Servicemen)",
         selectionStagesSummary = "Tier I (CBT Screening) ➔ Tier II (CBT Merit + DEST Typing) ➔ Dept Verification",
         milestones = listOf(
-            TimelineMilestone("Gazette Release", "24 Jun 2026", isPassed = true),
+            TimelineMilestone("Notification Release", "24 Jun 2026", isPassed = true),
             TimelineMilestone("Online Application Closes", "27 Jul 2026", isPassed = true),
             TimelineMilestone("Tier-I Hall Ticket", "29 Aug 2026", isPassed = true),
             TimelineMilestone("Tier-I Exam", "09 Sep 2026", isCrucial = true),
@@ -473,7 +473,7 @@ val DummyJobs = listOf(
         applicationFee = "₹400 for all candidate categories",
         selectionStagesSummary = "Offline OMR Written (300 M) ➔ DV & Physical Standards ➔ PET Running Test",
         milestones = listOf(
-            TimelineMilestone("Recruitment Gazette", "23 Dec 2026"),
+            TimelineMilestone("Recruitment Notification", "23 Dec 2026"),
             TimelineMilestone("Online Applications Begin", "27 Dec 2026"),
             TimelineMilestone("Application Deadline", "16 Jan 2027", isCrucial = true),
             TimelineMilestone("District Center Slips", "10 Feb 2027"),
@@ -491,11 +491,11 @@ val DummyJobs = listOf(
             ExamStageInfo("Physical Efficiency Test (PET)", "Ground Running Track", "25 Mins (M) / 14 Mins (F)", 0, 0, "Qualifying Only", listOf("Male: 4.8 km in 25 Minutes", "Female: 2.4 km in 14 Minutes"))
         ),
         cutoffBenchmarks = listOf(
-            CutoffEntry("UR (General Male)", "189.50 / 300", CutoffType.OFFICIAL, "UPPRPB Gazetted"),
-            CutoffEntry("OBC (Non-Creamy)", "180.20 / 300", CutoffType.OFFICIAL, "UPPRPB Gazetted"),
-            CutoffEntry("EWS", "172.50 / 300", CutoffType.OFFICIAL, "UPPRPB Gazetted"),
-            CutoffEntry("SC", "159.00 / 300", CutoffType.OFFICIAL, "UPPRPB Gazetted"),
-            CutoffEntry("ST", "127.80 / 300", CutoffType.OFFICIAL, "UPPRPB Gazetted"),
+            CutoffEntry("UR (General Male)", "189.50 / 300", CutoffType.OFFICIAL, "UPPRPB Official Notice"),
+            CutoffEntry("OBC (Non-Creamy)", "180.20 / 300", CutoffType.OFFICIAL, "UPPRPB Official Notice"),
+            CutoffEntry("EWS", "172.50 / 300", CutoffType.OFFICIAL, "UPPRPB Official Notice"),
+            CutoffEntry("SC", "159.00 / 300", CutoffType.OFFICIAL, "UPPRPB Official Notice"),
+            CutoffEntry("ST", "127.80 / 300", CutoffType.OFFICIAL, "UPPRPB Official Notice"),
             CutoffEntry("Female UR Horizontal", "181.00 / 300", CutoffType.HISTORICAL, "Previous Cohort Threshold")
         ),
         syllabusTopics = listOf(
@@ -673,11 +673,11 @@ val DummyJobs = listOf(
             ExamStageInfo("Mains CBT & Descriptive", "Online Multi-Section", "210 Mins", 157, 225, "-0.25 Negative", listOf("Reasoning & Computer (45 Qs / 60 M)", "General Economy & Banking (40 Qs / 40 M)", "English Language (35 Qs / 40 M)", "Data Analysis & Interpretation (35 Qs / 60 M)", "English Letter & Essay (2 Qs / 25 M)"))
         ),
         cutoffBenchmarks = listOf(
-            CutoffEntry("UR / General Prelims", "54.25 / 100", CutoffType.OFFICIAL, "IBPS Gazetted"),
-            CutoffEntry("OBC (NCL) Prelims", "54.25 / 100", CutoffType.OFFICIAL, "IBPS Gazetted"),
-            CutoffEntry("EWS Prelims", "54.25 / 100", CutoffType.OFFICIAL, "IBPS Gazetted"),
-            CutoffEntry("SC Prelims", "49.75 / 100", CutoffType.OFFICIAL, "IBPS Gazetted"),
-            CutoffEntry("ST Prelims", "44.00 / 100", CutoffType.OFFICIAL, "IBPS Gazetted"),
+            CutoffEntry("UR / General Prelims", "54.25 / 100", CutoffType.OFFICIAL, "IBPS Official Notice"),
+            CutoffEntry("OBC (NCL) Prelims", "54.25 / 100", CutoffType.OFFICIAL, "IBPS Official Notice"),
+            CutoffEntry("EWS Prelims", "54.25 / 100", CutoffType.OFFICIAL, "IBPS Official Notice"),
+            CutoffEntry("SC Prelims", "49.75 / 100", CutoffType.OFFICIAL, "IBPS Official Notice"),
+            CutoffEntry("ST Prelims", "44.00 / 100", CutoffType.OFFICIAL, "IBPS Official Notice"),
             CutoffEntry("Mains Overall UR Cutoff", "63.00 / 225", CutoffType.HISTORICAL, "Previous Allotment Minimum")
         ),
         syllabusTopics = listOf(
@@ -829,7 +829,7 @@ val DummyFeedItems = listOf(
         tag = "Notice",
         organization = "Union Public Service Commission",
         timeAgo = "3 hours ago",
-        summary = "UPSC has published the CSE 2026 detailed gazette notice announcing tentative vacancies, eligibility requirements, and deadline for OTR registration.",
+        summary = "UPSC has published the CSE 2026 detailed notification announcing tentative vacancies, eligibility requirements, and deadline for OTR registration.",
         noticeUrl = "https://upsc.gov.in/notice"
     ),
     FeedItem(

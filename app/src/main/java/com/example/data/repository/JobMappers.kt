@@ -106,7 +106,7 @@ object JobMappers {
             title = entity.title,
             category = mapCategory(entity.category),
             organization = orgName,
-            level = entity.department ?: "Gazetted / Central Cadre",
+            level = entity.department ?: "Central / State Cadre",
             salary = salaryStr,
             location = locationStr,
             seats = vacanciesCount,
