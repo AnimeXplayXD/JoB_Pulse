@@ -5,7 +5,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import com.example.ui.theme.LocalAppThemeTokens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -15,6 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ManageSearch
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -31,7 +32,8 @@ import com.example.model.Job
 import com.example.model.JobCategory
 import com.example.ui.components.JobCardItem
 import com.example.ui.components.JobCardSkeleton
-import com.example.ui.theme.AppColors
+import com.example.ui.components.LiquidGlassBox
+import com.example.ui.theme.LocalAppThemeTokens
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -67,44 +69,45 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 6.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .border(
-                    1.dp,
-                    tokens.borderSubtle,
-                    RoundedCornerShape(16.dp)
-                )
-                .background(tokens.surfaceElevated)
-                .clickable { onNavigateToSearch() }
-                .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+            LiquidGlassBox(
+                shape = RoundedCornerShape(16.dp),
+                elevation = 2.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToSearch() }
             ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search Entry",
-                    tint = tokens.textSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = if (searchQuery.isNotBlank()) searchQuery else "Search exam, post, quota or department...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (searchQuery.isNotBlank()) tokens.textPrimary else tokens.textTertiary,
-                    modifier = Modifier.weight(1f)
-                )
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = tokens.surfaceSubtle
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
                 ) {
-                    Text(
-                        text = "EXPLORE",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = tokens.primary,
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search Entry",
+                        tint = tokens.primary,
+                        modifier = Modifier.size(20.dp)
                     )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = if (searchQuery.isNotBlank()) searchQuery else "Search exam, post, quota or department...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (searchQuery.isNotBlank()) tokens.textPrimary else tokens.textTertiary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = tokens.primary.copy(alpha = if (tokens.isDark) 0.18f else 0.10f)
+                    ) {
+                        Text(
+                            text = "EXPLORE",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = tokens.primary,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        )
+                    }
                 }
             }
         }
@@ -126,9 +129,9 @@ fun HomeScreen(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
                     },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(tokens.chipRadius),
                     colors = FilterChipDefaults.filterChipColors(
-                        containerColor = tokens.surface,
+                        containerColor = tokens.surfaceElevated,
                         labelColor = tokens.textSecondary,
                         selectedContainerColor = tokens.primary,
                         selectedLabelColor = Color.White
@@ -166,7 +169,7 @@ fun HomeScreen(
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(tokens.chipRadius),
                         colors = FilterChipDefaults.filterChipColors(
                             containerColor = tokens.surfaceSubtle,
                             selectedContainerColor = tokens.surfaceElevated,
@@ -187,7 +190,7 @@ fun HomeScreen(
         ) {
             LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 110.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
@@ -198,19 +201,35 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(40.dp),
+                                .padding(vertical = 48.dp, horizontal = 24.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(tokens.surfaceElevated),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.SearchOff,
+                                        contentDescription = null,
+                                        tint = tokens.textTertiary,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
                                 Text(
                                     text = if (showBookmarksOnly) "No bookmarked jobs saved." else "No recruitment notices found.",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = tokens.textSecondary
+                                    color = tokens.textPrimary
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Try switching categories or clearing search filters",
+                                    text = if (showBookmarksOnly) "Bookmark opportunities from the feed to view them here." else "Try switching categories or clearing search filters.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textTertiary
                                 )

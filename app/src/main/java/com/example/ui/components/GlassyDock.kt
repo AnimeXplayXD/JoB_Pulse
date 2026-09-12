@@ -32,12 +32,20 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.Canvas
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.NavTab
 import com.example.ui.theme.AppThemeTokens
+import com.example.ui.theme.DarkThemeTokens
+import com.example.ui.theme.LightThemeTokens
 import com.example.ui.theme.LocalAppThemeTokens
+import com.example.ui.theme.lerpTokens
 
 @Composable
 fun GlassyDock(
@@ -47,7 +55,12 @@ fun GlassyDock(
     isDarkTheme: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val tokens = LocalAppThemeTokens.current
+    val baseTokens = LocalAppThemeTokens.current
+    val wave = LocalThemeWave.current
+
+    // Dock relies entirely on the ThemeRevealProvider for its theme transition.
+    val tokens = baseTokens
+
     var isPillHeld by remember { mutableStateOf(false) }
 
     // Dock subtly breathes when active pill is held or dragged
@@ -79,28 +92,19 @@ fun GlassyDock(
                 .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            val dockShape = RoundedCornerShape(22.dp)
+            val dockShape = RoundedCornerShape(tokens.dockRadius)
 
-            // Multi-layer liquid glass surface with specular highlight and ambient depth
-            Surface(
+            LiquidGlassBox(
                 modifier = Modifier
                     .graphicsLayer {
                         scaleX = dockScale
                         scaleY = dockScale
                     }
-                    .shadow(
-                        elevation = if (isPillHeld) 18.dp else if (tokens.isDark) 14.dp else 8.dp,
-                        shape = dockShape,
-                        spotColor = tokens.glassShadow,
-                        ambientColor = tokens.glassShadow.copy(alpha = 0.35f)
-                    )
-                    .clip(dockShape)
-                    .border(width = 1.dp, brush = tokens.glassBorder, shape = dockShape)
                     .testTag("floating_glassy_dock"),
-                color = Color.Transparent,
-                shape = dockShape
+                shape = dockShape,
+                elevation = if (isPillHeld) 16.dp else if (tokens.isDark) 12.dp else 8.dp,
+                shadowColor = tokens.glassShadow
             ) {
-                // Dock content container with single coordinated liquid-glass pill
                 LiquidGlassDockRow(
                     currentTab = currentTab,
                     onTabSelected = onTabSelected,
@@ -108,6 +112,27 @@ fun GlassyDock(
                     isHeld = isPillHeld,
                     onHeldChanged = { isPillHeld = it }
                 )
+
+                // Subtle liquid wave sheen passing across the dock when the wave reaches it
+                if (wave.isWaveActive && wave.progress in 0.65f..0.98f) {
+                    val waveFraction = ((wave.progress - 0.65f) / 0.33f).coerceIn(0f, 1f)
+                    val sheenAlpha = (kotlin.math.sin(waveFraction * Math.PI.toFloat()) * 0.28f).coerceIn(0f, 1f)
+                    val sheenColor = if (wave.toDark) Color(0xFF58A6FF) else Color(0xFFFFC043)
+
+                    Canvas(modifier = Modifier.matchParentSize().clip(dockShape)) {
+                        drawRect(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    sheenColor.copy(alpha = sheenAlpha),
+                                    Color.Transparent
+                                ),
+                                startX = size.width * (1f - waveFraction * 1.5f),
+                                endX = size.width * (1.5f - waveFraction * 1.5f)
+                            )
+                        )
+                    }
+                }
             }
         }
     }
@@ -381,6 +406,11 @@ private fun DockDestinationItem(
                 onPositioned(coordinates.boundsInParent())
             }
             .clip(RoundedCornerShape(16.dp))
+            .semantics {
+                role = Role.Tab
+                selected = isSelected
+            }
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

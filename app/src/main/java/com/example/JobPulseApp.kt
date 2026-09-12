@@ -8,8 +8,6 @@ class JobPulseApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        // Pre-initialize notification channels
-        com.example.util.NotificationHelper.setupNotificationChannels(this)
         // Pre-initialize repository
         JobRepositoryProvider.getRepository(this)
     }

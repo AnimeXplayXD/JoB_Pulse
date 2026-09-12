@@ -1,305 +1,263 @@
-# JobPulse
+<div align="center">
 
-> A modern recruitment-information app for discovering and tracking important job and recruitment opportunities.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/jobpulse_hero_banner.jpg">
+  <img alt="JobPulse - Recruitment Intelligence Engine for Android" src="docs/assets/jobpulse_hero_banner.jpg" width="100%" style="border-radius: 16px; margin-bottom: 24px;">
+</picture>
+
+<br/>
+
+<img src="docs/assets/jobpulse_logo.svg" alt="JobPulse Logo" width="340px" />
+
+<br/>
+<br/>
+
+**The Recruitment Intelligence Engine for Android.**  
+*Fluid. Offline-first. Engineered for absolute clarity.*
+
+<br/>
+
+[![Platform](https://img.shields.io/badge/Platform-Android%207.0%2B%20(API%2024%E2%80%9336)-0A84FF?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com)
+[![Language](https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![UI Toolkit](https://img.shields.io/badge/Jetpack%20Compose-BOM%202024.09.00-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Material System](https://img.shields.io/badge/Design-Custom%20Liquid%20Glass-00C7BE?style=for-the-badge)](https://developer.android.com/design)
+[![Database](https://img.shields.io/badge/Persistence-Room%202.7.0%20(SQLite)-FF9F0A?style=for-the-badge&logo=sqlite&logoColor=white)](https://developer.android.com/training/data-storage/room)
+[![CI Status](https://img.shields.io/badge/CI-Passing-34C759?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/AnimeXplayXD/JoB_Pulse/actions)
+[![License](https://img.shields.io/badge/License-To%20Be%20Determined-8E8E93?style=for-the-badge)](#license)
+
+<br/>
+
+[Overview](#overview) •
+[Why JobPulse](#why-jobpulse) •
+[Key Features](#key-features) •
+[Architecture](#architecture-overview) •
+[Data Integrity](#data-integrity--source-model) •
+[Tech Stack](#technology-stack) •
+[Quick Start](#quick-start) •
+[Wiki](#wiki--extended-documentation)
 
 ---
+
+</div>
+
+<br/>
 
 ## Overview
 
-**JobPulse** is a native Android application engineered to make recruitment information across India easier to discover, understand, and track. Aspirants and job seekers often struggle with fragmented gazette notifications, opaque timelines, convoluted selection pipelines, and dispersed cut-off data. JobPulse synthesizes this critical data into an accessible, structured, and visually engaging experience.
+In public recruitment, opportunity is frequently obscured by fragmented notifications, complex eligibility rules, conflicting schedules, and scattered cutoffs across hundreds of public agencies, civil service commissions, railway recruitment boards, defense forces, and nationalized banks.
 
-The application is architected around **remotely updateable recruitment data** using an offline-first synchronization model. The Android client operates purely as a secure consumer of structured, validated recruitment data. It does **not** directly scrape government portals or third-party websites, ensuring fast response times, consistent data validation, and predictable battery and network usage.
+**JobPulse** provides a modern native Android experience that transforms chaotic recruitment streams into structured, actionable intelligence. Engineered with an offline-first architecture, spatial information hierarchy, refined motion, and a custom Liquid Glass-inspired material foundation, JobPulse empowers candidates with absolute clarity and zero distractions.
 
 ---
 
-## Current Status
+## Why JobPulse
 
-The application features a complete native Android implementation:
+- **Zero Client Scraping**: JobPulse does not scrape third-party websites or HTML DOMs on client devices, preserving battery life and data.
+- **No Fabricated Information**: When official bodies have not announced dates or admit cards, JobPulse shows strict semantic states (`Not announced`, `Not available`, `Not applicable`) rather than guessing.
+- **Offline-First Resilience**: An embedded Room SQLite database acts as the single source of truth so saved vacancies, syllabi, and quotas are accessible anywhere.
+- **Organization-Adaptive Identity**: Recruits dynamically adopt the authentic color signatures and visual branding of the hiring agency (SBI, Railways, UPSC, SSC, Defense, State Police).
 
-- **Modern Architecture**: Offline-first repository pattern backed by Room persistence, unidirectional data flow, and Jetpack ViewModel.
-- **Declarative UI**: Built 100% with Jetpack Compose using Material 3 design principles.
-- **Adaptive Organization Branding**: Dynamic branding engine rendering authentic identities for major employers (SBI, Indian Railways, SSC, UPSC, State Police, Defense, State PSCs) while preserving JobPulse brand continuity.
-- **Liquid-Glass UI System**: Custom translucent glass floating navigation dock with touch-drag spring physics, specular highlight rims, and adaptive light/dark mode styling.
-- **Interactive Recruitment Cards**: Tactile touch feedback, single-tap inline expansion (deadlines, quota breakdown, eligibility summary, and quick CTAs), and double-tap shared-element container transformations into full details.
-- **Publication-Grade Detail Screen**: Comprehensive breakdown of vacancies, eligibility criteria, multi-stage exam patterns, syllabus topics, official vs. historical cut-offs, and important dates.
-- **Search & Filtering**: Real-time multi-attribute search across post titles, recruiting bodies, categories, and qualification tags.
-- **Offline Cache & Synchronization**: Local SQLite storage via Room with reactive Kotlin `Flow` updates and delta synchronization (`updated_since` query parameters).
-- **Notification Infrastructure**: Android notification channels (`JobPulse Alerts` and `JobPulse Milestones`) with contextual Android 13+ runtime permission management.
-- **Predictable Navigation**: System Back gesture support with hierarchical state dismissal (detail view $\rightarrow$ previous tab $\rightarrow$ home $\rightarrow$ exit).
-- **Adaptive Icon System**: Full-color adaptive launcher icon (Deep Indian Indigo `#0B1B3D` and Saffron `#F4A261`), dedicated single-color monochrome layer for Android 13+ Material You dynamic theming, and safe-zone geometry compliant with realme UI / OEM squircle masks.
-- **Automated Test Suite**: Unit, Robolectric, and Roborazzi screenshot test coverage.
+---
+
+## Key Features
+
+- **Custom Liquid Glass Material System**: Built in Jetpack Compose (`LiquidGlassBox`) using calibrated frosted translucency (`tokens.glassTint`), top-rim specular highlights, dual-stop borders, and elevation depth shadows. Because Android Compose operates directly on RenderNodes without background sampling, this approach provides a tactile glass aesthetic while keeping foreground content pin-sharp and maintaining smooth frame rates.
+- **Floating Touch-Drag Dock (`GlassyDock`)**: A translucent navigation capsule featuring interactive touch tracking, spring interpolation, and intelligent auto-hide during velocity scrolling.
+- **Spatial Motion & Container Transforms**: Double-tap card interactions seamlessly morph into full-screen dossiers via Compose `SharedTransitionLayout`, complemented by single-tap inline accordion previews.
+- **Contextual Notification Intelligence**: High-priority alert channels (`jobpulse_alerts`) and milestone channels (`jobpulse_milestones`), compliant with Android 13+ runtime permissions.
+
+---
+
+## Architecture Overview
+
+JobPulse follows a decoupled, unidirectional data flow (UDF) with MVVM architecture:
+
+```mermaid
+flowchart TD
+    subgraph Sources["Official Recruitment Sources"]
+        S1["UPSC / SSC Portals"]
+        S2["Railway Recruitment Boards"]
+        S3["Public Sector Banks"]
+        S4["State Public Service Commissions"]
+    end
+
+    subgraph Backend["Recruitment Notification Ingestion"]
+        ING["Ingestion & Validation Layer\n(Server-side)"]
+        API["Versioned REST API Contract\n(GET /api/v1/jobs?updated_since=t)"]
+    end
+
+    subgraph Client["JobPulse Android Client"]
+        subgraph DataLayer["Data Layer"]
+            RDS["RemoteJobDataSource\n(Retrofit & Moshi)"]
+            REPO["OfflineFirstJobRepository"]
+            ROOM[("Room SQLite Database\n(RecruitmentDaos & Entities)")]
+        end
+
+        subgraph DomainLayer["Domain & State"]
+            MAPPER["Entity <-> Model Mappers"]
+            VM["JobPulse ViewModel\n(StateFlow / UDF)"]
+        end
+
+        subgraph PresentationLayer["Presentation Layer (Jetpack Compose)"]
+            COMP["Custom Liquid Glass Foundation\n(LiquidGlassBox & GlassyDock)"]
+            SCREENS["Screens\n(Home • Search • Feed • Detail • Account)"]
+        end
+    end
+
+    Sources --> ING
+    ING --> API
+    API --> RDS
+    RDS --> REPO
+    REPO <--> ROOM
+    REPO --> MAPPER
+    MAPPER --> VM
+    VM --> COMP
+    COMP --> SCREENS
+
+    classDef sourceNode fill:#0B1B3D,stroke:#38BDF8,stroke-width:1.5px,color:#FFFFFF;
+    classDef backendNode fill:#1E293B,stroke:#94A3B8,stroke-width:1.5px,color:#FFFFFF;
+    classDef dataNode fill:#132F67,stroke:#FF9933,stroke-width:1.5px,color:#FFFFFF;
+    classDef presentationNode fill:#071A2E,stroke:#38BDF8,stroke-width:1.5px,color:#FFFFFF;
+    class Sources sourceNode;
+    class Backend backendNode;
+    class DataLayer,DomainLayer dataNode;
+    class PresentationLayer presentationNode;
+```
+
+---
+
+## Data Integrity & Source Model
+
+### The "No Fabricated Data" Principle
+> **"If the authoritative source does not provide a value, JobPulse does not invent one."**
+
+When statutory recruitment bodies have not announced specific milestones or links, JobPulse uses explicit semantic states:
+- `Not announced`: Confirmed by official notification to be released at a later date.
+- `Not available`: Authority has not published data for this category or post.
+- `Not applicable`: Requirement or stage does not apply to this vacancy.
+
+### Source Classification
+- **Official Source**: Published notification directly from a statutory portal or official notification PDF.
+- **Secondary Source**: Informational reference from public news or portal announcements; flagged accordingly.
+- **Unverified**: Ingestion record pending confirmation against official releases.
+- **Development Data**: Seeded local mock records used for previews and testing.
+
+*Note: JobPulse is designed to ingest structured recruitment information through a dedicated server-side ingestion layer. Production server-side ingestion is under active development; the client currently pairs its offline-first repository with local cache and development data providers. Client-side database synchronization does not constitute legal or statutory verification.*
 
 ---
 
 ## Technology Stack
 
-| Area | Technology | Version / Specification |
-|---|---|---|
-| **Language** | Kotlin | 2.2.10 |
-| **UI Toolkit** | Jetpack Compose | Material 3 / Compose BOM 2024.09.00 |
-| **Architecture** | Offline-First Repository + ViewModel | Modern Android Architecture (MVI/MVVM) |
-| **Local Database** | Room (SQLite) | 2.7.0 with Kotlin Symbol Processing (KSP) |
-| **Concurrency & Streams** | Kotlin Coroutines & Flow | 1.10.2 |
-| **Networking** | Retrofit & OkHttp | Retrofit 2.12.0 / OkHttp 4.10.0 |
-| **JSON Serialization** | Moshi Kotlin | 1.15.2 (Code generation) |
-| **Image Loading** | Coil Compose | 2.7.0 |
-| **Testing** | JUnit 4, AndroidX Test, Robolectric | Robolectric 4.16.1 |
-| **Visual Testing** | Roborazzi | 1.59.0 |
-| **Build System** | Gradle (Kotlin DSL) | Gradle 9.1.1 / AGP 9.1.1 |
-| **Target Platform** | Android | minSdk 24 (Android 7.0), targetSdk 36 (Android 16) |
+| Domain | Library / Specification | Version | Architectural Role |
+|---|---|---|---|
+| **Language** | Kotlin | `2.2.10` | Modern, type-safe development |
+| **UI Toolkit** | Jetpack Compose | BOM `2024.09.00` | Declarative UI framework with Material 3 |
+| **Material Foundation** | Custom Liquid Glass | Native Compose | Frosted translucency, specular rims & spring dock |
+| **Local Persistence** | Room Database | `2.7.0` (KSP) | SQLite abstraction layer with reactive Flow queries |
+| **Networking** | Retrofit + OkHttp | `2.12.0` / `4.10.0` | REST client with HTTPS transport & logging interceptor |
+| **Serialization** | Moshi Kotlin | `1.15.2` (KSP) | Reflection-free JSON parsing and code generation |
+| **Build Tooling** | Gradle / AGP | `9.3.1` / `9.1.1` | Kotlin DSL build engine with Java 17 toolchain |
+| **Target Platform** | Android | `minSdk 24` • `targetSdk 36` | Supported from Android 7.0 to Android 16 |
+| **Testing** | JUnit / Robolectric / Roborazzi | `4.13.2` / `4.16.1` / `1.59.0` | Unit, framework shadow, and screenshot test suite |
 
 ---
 
-## Architecture
+## Current Status & Brand Assets
 
-JobPulse enforces a strict separation of concerns between client display and data sourcing:
+- **Development Status**: Native Android client, offline Room caching, custom design system, and automated test suite are functional and verified passing in CI. Production server-side ingestion is in progress.
+- **Brand Assets**:
+  - **JobPulse Wordmark**: Vector logotype (`docs/assets/jobpulse_logo.svg`).
+  - **JP Pulse Monogram**: Core waveform glyph representing continuous recruitment telemetry.
+  - **Adaptive Launcher Icon**: Multi-density foreground and background layers (`app/src/main/res/mipmap-*/`).
+  - **Material You Dynamic Icon**: Monochrome vector (`ic_launcher_monochrome`) supporting Android 13+ dynamic theming.
+  - **Visual Showcase Assets**: Marketing banner (`docs/assets/jobpulse_hero_banner.jpg`) and icon render (`docs/assets/jobpulse_app_icon.jpg`).
 
-```text
-Official Recruitment Sources (Gazettes, Portals, Notifications)
-                       ↓
-            Server-side Ingestion
-                       ↓
-     Structured / Verified Recruitment Data
-                       ↓
-                 Versioned API
-                       ↓
-          Android Remote Data Source
-                       ↓
-            Offline-First Repository
-                       ↓
-                 Room / SQLite
-                       ↓
-                   ViewModel
-                       ↓
-              Jetpack Compose UI
+---
+
+## Quick Start
+
+### Prerequisites
+- Java Development Kit: JDK 17+ (JDK 22 supported)
+- Android Studio: Ladybug (2024.2+) or later
+- Android SDK: Platform `API 36`, Build Tools `36.0.0`
+
+### Build & Run
+```bash
+# 1. Clone repository
+git clone https://github.com/AnimeXplayXD/JoB_Pulse.git
+cd JoB_Pulse
+
+# 2. Build debug APK
+./gradlew assembleDebug
+
+# 3. Run unit and Robolectric tests
+./gradlew testDebugUnitTest
 ```
 
-The Android client connects to a versioned API endpoint and maps remote DTOs into strongly typed local database entities. Local storage acts as the single source of truth for the presentation layer. The client never attempts direct web scraping, preserving device efficiency, user privacy, and network resilience.
+*Windows PowerShell users can execute `.\gradlew.bat assembleDebug` and `.\gradlew.bat testDebugUnitTest`.*
 
----
+*Note on Configuration: Default settings compile out of the box using `.env.example`. Creating a `.env` file is optional for local development API credentials.*
 
-## Recruitment Data Model
+### Deploy to Connected Target
+```bash
+# Install to connected device or emulator
+adb install app/build/outputs/apk/debug/app-debug.apk
 
-Recruitment records are structured with comprehensive, normalized metadata fields:
-
-- **Identification**: Unique identifier, recruitment slug, internal reference codes.
-- **Organisation**: Organisation name, authority type, jurisdiction, and branding tokens.
-- **Position Overview**: Post title, department, cadre, employment type (Permanent / Contractual), total vacancies.
-- **Eligibility & Limits**: Educational requirements, minimum/maximum age limits, age relaxation rules.
-- **Financial Details**: Pay scale, basic pay, grade pay, and application fee categories.
-- **Important Dates**: Notification date, application open/close dates, fee deadline, admit card release, exam dates, result dates.
-- **Examination Schema**: Examination stages, mode (CBT / OMR / Interview), duration, question count, negative marking scheme, and syllabus topics.
-- **Quota & Cut-offs**: Category reservation breakdown (UR, OBC, SC, ST, EWS, PwBD) and historical/gazetted cut-off scores.
-- **Official References**: Application portal URL, official gazette PDF download link, source verification URL, publication timestamp, and recruitment status (`ACTIVE`, `UPCOMING`, `CLOSED`, `EXPIRED`).
-
-### Data Integrity Rule
-Unknown or pending information is never fabricated. When official notifications have not yet released specific details (e.g., examination dates or admit card links), the system represents them with semantic states:
-- `Not announced`
-- `Not available`
-- `Not applicable`
-
----
-
-## Official Source Model
-
-Production recruitment information is curated from official recruitment authorities and published gazette notices, including:
-
-- Union Public Service Commission (UPSC)
-- Staff Selection Commission (SSC)
-- Railway Recruitment Boards (RRB)
-- State Bank of India (SBI) & Institute of Banking Personnel Selection (IBPS)
-- State Public Service Commissions (e.g., UPPSC, BPSC, MPSC)
-- State Police Recruitment Boards
-
-> **Notice**: JobPulse is an independent recruitment discovery platform and is **not** operated by, affiliated with, or endorsed by these authorities. Official recruitment documents are credited to their respective publishing bodies.
-
----
-
-## Organisation Branding
-
-Recruitment opportunities in JobPulse feature organisation-specific visual identities to ensure immediate recognizability for aspirants:
-
-- **State Bank of India (SBI)**: Authentic SBI Blue (`#0072BC`) with banking badge accents.
-- **Indian Railways / RRB**: Deep iron navy (`#1B365D`) with warm gold brass accents (`#C59B27`).
-- **Staff Selection Commission (SSC)**: National administrative slate and deep navy (`#1F3A60`).
-- **Union Public Service Commission (UPSC)**: Prestigious deep navy and imperial gold seal styling (`#16253D`, `#D4AF37`).
-- **State Police**: Khaki patrol navy and crimson chevron badge accents.
-- **Defense Services**: Maritime navy and tactical insignia styling.
-
-Organisation branding is strictly isolated to individual recruitment cards and detail headers. **JobPulse** remains the product brand, maintaining an independent design identity that never implies official government ownership.
-
----
-
-## Offline-First Architecture
-
-JobPulse is built to function reliably in low-connectivity or offline scenarios:
-
-```text
-Open application
-      ↓
-Read cached Room data
-      ↓
-Display available recruitment records instantly
-      ↓
-Attempt background synchronization
-      ↓
-Persist delta changes to local database
-      ↓
-UI automatically updates via reactive Kotlin Flow
+# Launch main activity
+adb shell am start -n com.aistudio.govtjobs.pxrtwa/com.example.MainActivity
 ```
 
-If network connectivity is unavailable or synchronization fails, the application continues to display previously cached recruitment records without errors or disruptions.
-
 ---
 
-## Synchronization
+## Testing & Quality Assurance
 
-The application synchronizes recruitment data via a versioned REST API contract:
-
-```http
-GET /api/v1/jobs?updated_since=<timestamp>
-GET /api/v1/organisations
-```
-
-- **Delta Synchronization**: Transmits only records modified or created since the previous local synchronization timestamp.
-- **Entity Deletions**: Detects expired or retracted notices and reconciles the local SQLite database.
-- **Cache Consistency**: Atomic database transactions guarantee data integrity across sync intervals.
-
-*(Note: During current development and staging phases, the application utilizes the structured `RemoteJobDataSource` fixture to simulate the versioned REST contract).*
-
----
-
-## Security
-
-JobPulse adheres to Android security best practices:
-
-- **Zero Privileged Secrets in Client**: The Android application does **not** embed database master credentials, service-role keys, backend administrative tokens, or private ingestion credentials.
-- **Secure Transport**: Network communication requires encrypted HTTPS connections.
-- **Strict Permission Handling**: Requests only runtime permissions strictly necessary for user-facing functionality (e.g., `POST_NOTIFICATIONS` on Android 13+).
-
----
-
-## Development Data
-
-Development fixtures (`RemoteJobDataSource`) provide representative recruitment notices across categories to facilitate testing of UI components, transitions, and database queries. Development records are explicitly tagged as fixtures and must not be confused with verified live gazettes.
-
----
-
-## UI / UX Design Principles
-
-- **Clear Information Hierarchy**: Bold metadata tags, structured milestone timelines, and scannable requirement lists.
-- **Spatial Continuity**: Shared-element transitions (`SharedTransitionLayout`) seamlessly expand cards into full-screen details and contract them back upon return.
-- **Tactile Feedback**: Touch scale reactions (`0.982f`) with spring release physics.
-- **Liquid-Glass Navigation Dock**: Floating bottom dock with touch-drag sliding, active pill morphing, and auto-hiding behavior on scroll.
-- **Balanced Color Systems**: Obsidian dark mode (`#0D1117`) and warm-paper light mode (`#F6F8FA`) calibrated for reading comfort and contrast accessibility.
-
----
-
-## Notifications
-
-JobPulse includes native Android notification infrastructure configured for recruitment tracking:
-
-- **Channels**:
-  - `JobPulse Alerts` (`jobpulse_alerts`): Urgent notices such as deadline reminders and sudden schedule changes.
-  - `JobPulse Milestones` (`jobpulse_milestones`): Application opening announcements and admit card releases.
-- **Runtime Permissions**: Android 13+ (API 33+) notification permissions are requested contextually rather than aggressively on initial launch.
-
----
-
-## Navigation Hierarchy
-
-JobPulse maintains a predictable back-stack flow:
-
-```text
-Job Detail Screen
-       ↓ (Back gesture / button)
-Previous Tab (Search / Feed / Account / Home)
-       ↓ (Back gesture / button)
-Home Screen
-       ↓ (Back gesture)
-Exit Application
-```
-
-Inline card expansions and transient UI states are dismissed prior to navigating away from the active screen.
-
----
-
-## Testing & Verification
-
-The project includes an automated test suite verifying business logic, database queries, DTO mapping, and brand identity:
+JobPulse maintains strict automated testing across data, business logic, and UI:
 
 ```powershell
-# Run unit, Robolectric, and integration tests
 .\gradlew.bat testDebugUnitTest
-
-# Assemble and verify debug APK package
-.\gradlew.bat assembleDebug
 ```
 
-CI workflows (`.github/workflows/android-build-test.yml`) run these verification steps automatically on pushes and pull requests to `main`.
-
----
-
-## Project Structure
-
-```text
-app/
-└── src/
-    ├── main/
-    │   ├── java/com/example/
-    │   │   ├── data/
-    │   │   │   ├── local/          # Room database, DAOs, and database entities
-    │   │   │   ├── remote/         # Retrofit API service, DTOs, RemoteJobDataSource
-    │   │   │   └── repository/     # OfflineFirstJobRepository, JobMappers
-    │   │   ├── model/              # Domain models (Job, Organisation, Category)
-    │   │   ├── ui/
-    │   │   │   ├── components/     # GlassyDock, JobCardItem, JobPulseBrand
-    │   │   │   ├── screens/        # HomeScreen, JobDetailScreen, SearchScreen, FeedScreen, AccountScreen
-    │   │   │   └── theme/          # Color, Theme, Type, ThemeTokens, OrgBranding
-    │   │   ├── util/               # NotificationHelper
-    │   │   ├── JobPulseApp.kt      # Application class
-    │   │   └── MainActivity.kt     # Root Activity, navigation host, shared transitions
-    │   ├── res/                    # Drawables, mipmaps, adaptive/monochrome icons, strings
-    │   └── AndroidManifest.xml
-    └── test/                       # Unit and Robolectric tests
-docs/
-└── walkthrough.md                  # Detailed implementation and verification walkthrough
-```
+- **`BrandIdentityTest`**: Enforces strict brand compliance (app name `"JobPulse"`, notification channel naming, vector drawable resolution, and pure-white geometry on `ic_launcher_monochrome`).
+- **`LiquidGlassAndDockTest`**: Verifies dock tab state changes, navigation bounds, and custom Liquid Glass token values across Dark and Light themes.
+- **`OfflineFirstJobRepositoryTest`**: Validates Room database fallback during network interruptions and cache hydration.
+- **`JobMappersTest`**: Asserts bidirectional data fidelity across DTO $\leftrightarrow$ Entity $\leftrightarrow$ Domain Model conversions.
 
 ---
 
 ## Roadmap
 
-### Implemented
-- [x] Jetpack Compose UI with liquid-glass dock and tactile job cards
-- [x] Double-tap shared-element container transform into publication-grade detail screen
-- [x] Organisation-specific visual branding engine
-- [x] Room database persistence with reactive offline-first repository
-- [x] Versioned remote API contracts and DTO mapping layer
-- [x] Android 13+ Material You dynamic themed icon & realme-safe adaptive icon system
-- [x] Hierarchical system Back navigation
-- [x] Notification channel setup with runtime permission scaffolding
-- [x] Automated test suite and GitHub Actions CI workflow
-
-### Future Work
-- [ ] Production cloud API and PostgreSQL backend deployment
-- [ ] Automated server-side gazette ingestion and verification pipeline
-- [ ] Push notification dispatch service via Firebase Cloud Messaging (FCM)
-- [ ] Background delta sync using Android WorkManager
-- [ ] Expansion of supported state public service commissions and regional recruiting bodies
+- **Milestone 1: Client Foundation (Current)**
+  - [x] Custom Liquid Glass material system with specular highlights and spring-interpolated `GlassyDock`.
+  - [x] Room SQLite offline-first persistence with reactive Kotlin `StateFlow`.
+  - [x] Adaptive organization visual identity (UPSC, SSC, Railways, Banking, Defense, Police).
+  - [x] Android 13+ Material You monochrome icon and contextual notification channels.
+  - [x] Comprehensive test suite with Robolectric and GitHub Actions CI.
+- **Milestone 2: Cloud Ingestion & Edge Sync (In Progress)**
+  - [ ] Production server-side recruitment notification ingestion and validation pipeline.
+  - [ ] Android WorkManager periodic background synchronization with battery-conscious network constraints.
+  - [ ] Cloud push notification integration for critical application deadlines.
+- **Milestone 3: Future Exploration**
+  - [ ] Extended coverage across regional and municipal recruitment boards.
+  - [ ] Personalized candidate alert rules and eligibility matching.
 
 ---
 
 ## Disclaimer
 
-> JobPulse is an independent recruitment-information application.
->
-> Official recruitment information belongs to the respective recruiting organisations. Users should verify important eligibility requirements, dates, vacancies, fees, and application instructions against the relevant official notification before applying.
->
-> JobPulse does not represent or impersonate any government organisation, recruiting authority, bank, railway organisation, commission, or employer.
+> [!IMPORTANT]
+> **Independent Service Notice**  
+> JobPulse is an independent recruitment-information application and is not affiliated with, authorized by, or endorsed by any government department, recruiting authority, or organization represented in the application.  
+> 
+> Candidates should verify all recruitment details, eligibility criteria, dates, and application procedures against the official recruitment notification and official authority portal before applying or paying fees.
 
 ---
 
 ## License
 
-> License information will be added when the project's distribution and contribution policy is finalized.
+**License: To be determined.**
+
+---
+
+## Wiki & Extended Documentation
+
+Detailed technical specifications, recruitment data schemas, design tokens, and testing architecture are documented in the [JobPulse GitHub Wiki](https://github.com/AnimeXplayXD/JoB_Pulse/wiki).

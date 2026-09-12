@@ -77,6 +77,7 @@ object NotificationHelper {
      */
     fun postSubscriptionConfirmedNotification(context: Context) {
         if (!hasNotificationPermission(context)) return
+        setupNotificationChannels(context)
 
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -106,6 +107,60 @@ object NotificationHelper {
             NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_CONFIRMATION, notification)
         } catch (e: SecurityException) {
             // Permission revoked concurrently
+        }
+    }
+
+    private const val PREFS_NAME = "jobpulse_notification_prefs"
+    private const val KEY_FIRST_OPEN_PROMPTED = "first_open_notification_prompted"
+
+    /**
+     * Determines whether the first-open notification permission popup should be displayed.
+     * Returns true ONLY if:
+     * 1. Notification permission has NOT been granted earlier.
+     * 2. The user has not already been prompted on a first open.
+     */
+    fun shouldShowFirstOpenPrompt(context: Context): Boolean {
+        if (hasNotificationPermission(context)) {
+            return false
+        }
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return !prefs.getBoolean(KEY_FIRST_OPEN_PROMPTED, false)
+    }
+
+    /**
+     * Records that the first-open notification prompt has been presented and handled.
+     */
+    fun markFirstOpenPromptShown(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_FIRST_OPEN_PROMPTED, true).apply()
+    }
+
+    /**
+     * Resets the first-open prompt state for testing purposes.
+     */
+    fun resetFirstOpenPromptForTesting(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().remove(KEY_FIRST_OPEN_PROMPTED).apply()
+    }
+
+    /**
+     * Directs the user to the system notification settings for this application.
+     */
+    fun openNotificationSettings(context: Context) {
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+            }
+        } else {
+            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = android.net.Uri.fromParts("package", context.packageName, null)
+            }
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Fallback gracefully
         }
     }
 }

@@ -8,29 +8,30 @@
     <!-- J Letterform -->
     <path
         android:strokeColor="#0B1B3D"
-        android:strokeWidth="2.8"
+        android:strokeWidth="2.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M 17,10 L 17,28 C 17,34 9,34 9,28 L 9,25" />
+        android:pathData="M 17.5,13.5 L 17.5,28.5 C 17.5,33 11.5,33 11.5,28.5 L 11.5,26" />
 
     <!-- P Letterform -->
     <path
         android:strokeColor="#0B1B3D"
-        android:strokeWidth="2.8"
+        android:strokeWidth="2.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M 24,10 L 24,37 M 24,10 L 31,10 C 37,10 37,22 31,22 L 24,22" />
+        android:pathData="M 24,13.5 L 24,34 M 24,13.5 L 29.5,13.5 C 34,13.5 34,23 29.5,23 L 24,23" />
 
     <!-- Pulse Signal Waveform -->
     <path
         android:strokeColor="#0B1B3D"
-        android:strokeWidth="2.0"
+        android:strokeWidth="1.9"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M 7,22 L 14,22 L 18,27 L 24,14 L 29,29 L 33,22 L 36,22" />
+        android:pathData="M 10.5,23 L 15,23 L 17.8,27 L 22.2,16.5 L 25.8,29 L 29.5,23 L 33,23" />
 
-    <!-- Amber Beacon Node -->
+    <!-- Radiant Saffron Beacon Node -->
     <path
         android:fillColor="#FF9933"
-        android:pathData="M 40,22 A 2.5,2.5 0 1,0 40,22.01 Z" />
+        android:pathData="M 36.2,21.4 A 1.6,1.6 0 1,0 36.2,24.6 A 1.6,1.6 0 1,0 36.2,21.4 Z" />
 </vector>
+

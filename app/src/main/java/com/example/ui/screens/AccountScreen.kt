@@ -4,7 +4,6 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import com.example.ui.theme.LocalAppThemeTokens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -25,8 +24,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import com.example.model.UserProfile
+import com.example.ui.components.JobPulseSymbol
+import com.example.theme.LocalThemeRevealController
 import com.example.ui.theme.AppColors
+import com.example.ui.theme.LocalAppThemeTokens
 
 @Composable
 fun AccountScreen(
@@ -43,10 +48,12 @@ fun AccountScreen(
     var admitCardAlerts by remember { mutableStateOf(profile.admitCardAlertsEnabled) }
     var examDateAlerts by remember { mutableStateOf(profile.examDateAlertsEnabled) }
     val tokens = LocalAppThemeTokens.current
+    val revealController = LocalThemeRevealController.current
+    var switchCenter by remember { mutableStateOf<Offset?>(null) }
 
     LazyColumn(
         state = listState,
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 100.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 110.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier
             .fillMaxSize()
@@ -56,13 +63,13 @@ fun AccountScreen(
         item {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(tokens.cardRadius),
                 color = tokens.surface,
                 border = androidx.compose.foundation.BorderStroke(
-                    0.8.dp,
+                    1.dp,
                     tokens.borderSubtle
                 ),
-                shadowElevation = if (tokens.isDark) 4.dp else 2.dp
+                shadowElevation = if (tokens.isDark) 3.dp else 2.dp
             ) {
                 Column(
                     modifier = Modifier
@@ -70,20 +77,13 @@ fun AccountScreen(
                         .padding(22.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Avatar Initials with Specular Halo
+                    // Avatar Initials with clean typography
                     Box(
                         modifier = Modifier
-                            .size(76.dp)
+                            .size(72.dp)
                             .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        tokens.primary,
-                                        Color(0xFF0072BC)
-                                    )
-                                )
-                            )
-                            .border(2.dp, Color.White.copy(alpha = 0.5f), CircleShape),
+                            .background(tokens.primary)
+                            .border(2.dp, tokens.glassBorder, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -112,7 +112,7 @@ fun AccountScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(tokens.chipRadius),
                         color = tokens.primary.copy(alpha = if (tokens.isDark) 0.18f else 0.10f)
                     ) {
                         Text(
@@ -132,14 +132,15 @@ fun AccountScreen(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(tokens.cardRadius))
                     .clickable { onViewBookmarks() },
-                shape = RoundedCornerShape(18.dp),
-                color = tokens.surfaceElevated,
+                shape = RoundedCornerShape(tokens.cardRadius),
+                color = tokens.surface,
                 border = androidx.compose.foundation.BorderStroke(
-                    0.8.dp,
+                    1.dp,
                     tokens.borderSubtle
-                )
+                ),
+                shadowElevation = if (tokens.isDark) 2.dp else 1.dp
             ) {
                 Row(
                     modifier = Modifier
@@ -151,27 +152,27 @@ fun AccountScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(42.dp)
-                                .background(tokens.primary, CircleShape),
+                                .size(40.dp)
+                                .background(tokens.primary.copy(alpha = if (tokens.isDark) 0.22f else 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Bookmark,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = tokens.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(14.dp))
                         Column {
                             Text(
-                                text = "Bookmarked Government Jobs",
+                                text = "Bookmarked Positions",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = tokens.textPrimary
                             )
                             Text(
-                                text = "$bookmarkedCount positions saved for quick application",
+                                text = "$bookmarkedCount notices saved for application",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = tokens.textSecondary
                             )
@@ -181,7 +182,7 @@ fun AccountScreen(
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = "View",
-                        tint = tokens.textSecondary
+                        tint = tokens.textTertiary
                     )
                 }
             }
@@ -191,16 +192,17 @@ fun AccountScreen(
         item {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(tokens.cardRadius),
                 color = tokens.surface,
                 border = androidx.compose.foundation.BorderStroke(
-                    0.8.dp,
+                    1.dp,
                     tokens.borderSubtle
-                )
+                ),
+                shadowElevation = if (tokens.isDark) 2.dp else 1.dp
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Text(
-                        text = "Candidate Eligibility & Quota Profile",
+                        text = "Eligibility & Quota Profile",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = tokens.textPrimary
@@ -245,16 +247,17 @@ fun AccountScreen(
         item {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(tokens.cardRadius),
                 color = tokens.surface,
                 border = androidx.compose.foundation.BorderStroke(
-                    0.8.dp,
+                    1.dp,
                     tokens.borderSubtle
-                )
+                ),
+                shadowElevation = if (tokens.isDark) 2.dp else 1.dp
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Text(
-                        text = "Live Alerts & Notification Triggers",
+                        text = "Notification Preferences",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = tokens.textPrimary
@@ -302,16 +305,17 @@ fun AccountScreen(
         item {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(tokens.cardRadius),
                 color = tokens.surface,
                 border = androidx.compose.foundation.BorderStroke(
-                    0.8.dp,
+                    1.dp,
                     tokens.borderSubtle
-                )
+                ),
+                shadowElevation = if (tokens.isDark) 2.dp else 1.dp
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Text(
-                        text = "Appearance & System Settings",
+                        text = "Appearance & System",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = tokens.textPrimary
@@ -338,7 +342,7 @@ fun AccountScreen(
                                     color = tokens.textPrimary
                                 )
                                 Text(
-                                    text = if (tokens.isDark) "Obsidian dark mode active" else "Warm alabaster light mode active",
+                                    text = if (tokens.isDark) "Refined charcoal dark theme" else "Clean pearl light theme",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textSecondary
                                 )
@@ -347,7 +351,17 @@ fun AccountScreen(
 
                         Switch(
                             checked = tokens.isDark,
-                            onCheckedChange = { onToggleTheme() }
+                            onCheckedChange = {
+                                revealController.reveal(switchCenter)
+                            },
+                            modifier = Modifier.onGloballyPositioned { coordinates ->
+                                val pos = coordinates.positionInRoot()
+                                val size = coordinates.size
+                                switchCenter = Offset(
+                                    pos.x + size.width / 2f,
+                                    pos.y + size.height / 2f
+                                )
+                            }
                         )
                     }
 
@@ -362,17 +376,17 @@ fun AccountScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            com.example.ui.components.JobPulseSymbol(size = 32.dp)
+                            JobPulseSymbol(size = 30.dp)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "JobPulse Platform",
+                                    text = "JobPulse",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = tokens.textPrimary
                                 )
                                 Text(
-                                    text = "v2.5 • Modern Indian Recruitment Intelligence",
+                                    text = "National Recruitment Intelligence",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = tokens.textTertiary
                                 )
@@ -380,14 +394,14 @@ fun AccountScreen(
                         }
 
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = AppColors.SuccessGreen.copy(alpha = 0.15f)
+                            shape = RoundedCornerShape(tokens.chipRadius),
+                            color = tokens.surfaceElevated
                         ) {
                             Text(
-                                text = "VERIFIED",
+                                text = "v2.5",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = AppColors.SuccessGreen,
+                                color = tokens.textSecondary,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }

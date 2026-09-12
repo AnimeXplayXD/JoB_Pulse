@@ -1,10 +1,15 @@
 package com.example.ui.theme
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
@@ -56,16 +61,38 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Set dynamicColor default to false so app maintains its curated palette across all devices
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    val themeTokens = if (darkTheme) DarkThemeTokens else LightThemeTokens
+    val wave = com.example.ui.components.LocalThemeWave.current
+    val targetTokens = if (darkTheme) DarkThemeTokens else LightThemeTokens
+    val targetColorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
-    androidx.compose.runtime.CompositionLocalProvider(
-        LocalAppThemeTokens provides themeTokens
+    val currentTokens = if (wave.isWaveActive) {
+        val fromTokens = if (wave.fromDark) DarkThemeTokens else LightThemeTokens
+        val toTokens = if (wave.toDark) DarkThemeTokens else LightThemeTokens
+        // The general screen content transitions smoothly as the liquid wave expands outward
+        val contentProgress = (wave.progress / 0.70f).coerceIn(0f, 1f)
+        lerpTokens(fromTokens, toTokens, contentProgress)
+    } else {
+        targetTokens
+    }
+
+    val currentColorScheme = (if (currentTokens.isDark) DarkColorScheme else LightColorScheme).copy(
+        background = currentTokens.background,
+        surface = currentTokens.surface,
+        surfaceVariant = currentTokens.surfaceElevated,
+        onBackground = currentTokens.textPrimary,
+        onSurface = currentTokens.textPrimary,
+        onSurfaceVariant = currentTokens.textSecondary,
+        primary = currentTokens.primary,
+        outline = currentTokens.border,
+        outlineVariant = currentTokens.borderSubtle
+    )
+
+    CompositionLocalProvider(
+        LocalAppThemeTokens provides currentTokens
     ) {
-        MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+        MaterialTheme(colorScheme = currentColorScheme, typography = Typography, content = content)
     }
 }

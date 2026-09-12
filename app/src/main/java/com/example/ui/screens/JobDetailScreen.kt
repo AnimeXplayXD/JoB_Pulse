@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.example.model.*
+import com.example.ui.components.LiquidGlassBox
 import com.example.ui.theme.AppThemeTokens
 import com.example.ui.theme.LocalAppThemeTokens
 import com.example.ui.theme.OrgBrandingRegistry
@@ -114,14 +115,13 @@ fun JobDetailScreen(
                 )
             },
             bottomBar = {
-                // Sticky Action Surface with direct Application & Official PDF triggers
-                Surface(
-                    color = tokens.surface,
-                    shadowElevation = 16.dp,
-                    border = androidx.compose.foundation.BorderStroke(
-                        0.5.dp,
-                        tokens.borderSubtle
-                    )
+                // Liquid Glass Sticky Action Bar with direct Application & Official PDF triggers
+                LiquidGlassBox(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                    tint = tokens.surface.copy(alpha = if (tokens.isDark) 0.88f else 0.90f),
+                    borderBrush = tokens.glassBorder,
+                    elevation = 16.dp
                 ) {
                     Row(
                         modifier = Modifier
@@ -137,7 +137,7 @@ fun JobDetailScreen(
                                 val intent = Intent(Intent.ACTION_VIEW, url.toUri())
                                 context.startActivity(intent)
                             },
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(tokens.buttonRadius),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
                                 tokens.border
@@ -146,7 +146,7 @@ fun JobDetailScreen(
                                 contentColor = tokens.textPrimary
                             ),
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(vertical = 12.dp)
+                            contentPadding = PaddingValues(vertical = 13.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Description,
@@ -163,13 +163,13 @@ fun JobDetailScreen(
                                 val intent = Intent(Intent.ACTION_VIEW, url.toUri())
                                 context.startActivity(intent)
                             },
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(tokens.buttonRadius),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = branding.getPrimaryColor(tokens.isDark),
                                 contentColor = Color.White
                             ),
                             modifier = Modifier.weight(1.3f),
-                            contentPadding = PaddingValues(vertical = 12.dp)
+                            contentPadding = PaddingValues(vertical = 13.dp)
                         ) {
                             Text(
                                 text = if (job.applyUrl != null) "Apply Online" else "Official Portal",
@@ -193,7 +193,7 @@ fun JobDetailScreen(
                     .padding(innerPadding)
                     .testTag("job_detail_screen")
             ) {
-                // Shared Bounds Hero Card transforming from the originating JobCard
+                // Shared Bounds Hero Card transforming from originating JobCard
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -204,20 +204,13 @@ fun JobDetailScreen(
                                 tween(durationMillis = 320, easing = FastOutSlowInEasing)
                             }
                         )
-                        .background(branding.getSurfaceGradient(tokens.isDark))
+                        .background(tokens.surface)
+                        .border(
+                            1.dp,
+                            tokens.borderSubtle
+                        )
                         .padding(22.dp)
                 ) {
-                    // Subtle Official Watermark Motif integrated into the liquid-glass background
-                    Icon(
-                        imageVector = branding.watermarkIcon,
-                        contentDescription = null,
-                        tint = branding.getWatermarkColor(tokens.isDark),
-                        modifier = Modifier
-                            .size(140.dp)
-                            .align(Alignment.TopEnd)
-                            .offset(x = 24.dp, y = (-12).dp)
-                    )
-
                     Column {
                         // Organization Identity Header
                         Row(verticalAlignment = Alignment.CenterVertically) {

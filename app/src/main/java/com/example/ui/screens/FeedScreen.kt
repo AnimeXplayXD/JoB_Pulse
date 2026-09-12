@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import com.example.ui.theme.LocalAppThemeTokens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -31,7 +30,9 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.example.model.DummyFeedItems
 import com.example.model.FeedItem
+import com.example.ui.components.LiquidGlassBox
 import com.example.ui.theme.AppColors
+import com.example.ui.theme.LocalAppThemeTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,66 +55,66 @@ fun FeedScreen(
             .fillMaxSize()
             .testTag("feed_screen")
     ) {
-        // Live Updates Banner
-        Surface(
+        // Live Updates Banner with restrained Liquid Glass styling
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = tokens.surface,
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                tokens.borderSubtle
-            )
+                .padding(horizontal = 16.dp, vertical = 6.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
+            LiquidGlassBox(
+                shape = RoundedCornerShape(tokens.cardRadius),
+                elevation = 2.dp,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .background(tokens.primary, CircleShape),
-                    contentAlignment = Alignment.Center
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Bolt,
-                        contentDescription = "Live",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "LIVE RECRUITMENT BROADCAST",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = tokens.primary,
-                            letterSpacing = 0.5.sp
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(AppColors.LiveRed, CircleShape)
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(tokens.primary.copy(alpha = if (tokens.isDark) 0.22f else 0.12f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = "Live",
+                            tint = tokens.primary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                    Text(
-                        text = "Real-time updates pulled from UPSC, SSC, RRB & State PSC portals",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textSecondary
-                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "OFFICIAL RECRUITMENT DISPATCHES",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = tokens.primary,
+                                letterSpacing = 0.4.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .background(tokens.livePulse, CircleShape)
+                            )
+                        }
+                        Text(
+                            text = "Authoritative updates from UPSC, SSC, RRB & State Commission portals",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = tokens.textSecondary
+                        )
+                    }
                 }
             }
         }
 
         // Tag Filter Chips
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(tags, key = { it }) { tag ->
@@ -128,9 +129,9 @@ fun FeedScreen(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
                     },
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(tokens.chipRadius),
                     colors = FilterChipDefaults.filterChipColors(
-                        containerColor = tokens.surface,
+                        containerColor = tokens.surfaceElevated,
                         labelColor = tokens.textSecondary,
                         selectedContainerColor = tokens.primary,
                         selectedLabelColor = Color.White
@@ -149,7 +150,7 @@ fun FeedScreen(
         // Feed Items List
         LazyColumn(
             state = listState,
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 100.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 110.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier.fillMaxSize()
         ) {
@@ -176,20 +177,20 @@ fun FeedCard(
     val tagColor = when (item.tag) {
         "Exam Date" -> Color(0xFF1976D2)
         "Admit Card" -> Color(0xFF2E7D32)
-        "Result" -> Color(0xFFE65100)
+        "Result" -> Color(0xFFD97706)
         "Answer Key" -> Color(0xFF7B1FA2)
         else -> tokens.primary
     }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(tokens.cardRadius),
         color = tokens.surface,
         border = androidx.compose.foundation.BorderStroke(
-            0.8.dp,
+            1.dp,
             tokens.borderSubtle
         ),
-        shadowElevation = if (tokens.isDark) 4.dp else 2.dp
+        shadowElevation = if (tokens.isDark) 3.dp else 2.dp
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             // Header: Tag Badge & Time Ago
@@ -199,11 +200,11 @@ fun FeedCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    color = tagColor.copy(alpha = if (tokens.isDark) 0.20f else 0.12f),
+                    color = tagColor.copy(alpha = if (tokens.isDark) 0.18f else 0.10f),
                     shape = RoundedCornerShape(6.dp),
                     border = androidx.compose.foundation.BorderStroke(
                         0.5.dp,
-                        tagColor.copy(alpha = if (tokens.isDark) 0.40f else 0.25f)
+                        tagColor.copy(alpha = if (tokens.isDark) 0.35f else 0.22f)
                     )
                 ) {
                     Text(
@@ -211,8 +212,8 @@ fun FeedCard(
                         color = tagColor,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        letterSpacing = 0.5.sp
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        letterSpacing = 0.4.sp
                     )
                 }
 
@@ -237,12 +238,13 @@ fun FeedCard(
             // Announcement Title
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
                 color = tokens.textPrimary,
                 lineHeight = 22.sp
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Issuing Organization
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -273,19 +275,22 @@ fun FeedCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Action
+            // Official Action
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
                 OutlinedButton(
                     onClick = onOpenNotice,
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(tokens.buttonRadius),
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
                         tokens.border
                     ),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = tokens.textPrimary
+                    ),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.OpenInNew,
@@ -294,7 +299,7 @@ fun FeedCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        "Official PDF Notice",
+                        "Official Notice",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold
                     )

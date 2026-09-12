@@ -39,4 +39,34 @@ class NotificationHelperTest {
         // Should evaluate to true or false depending on test manifest/shadow
         assertNotNull(hasPermission)
     }
+
+    @Test
+    fun shouldShowFirstOpenPrompt_andMarkFirstOpenPromptShown() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        NotificationHelper.resetFirstOpenPromptForTesting(context)
+
+        val initialShouldShow = NotificationHelper.shouldShowFirstOpenPrompt(context)
+        val hasPerm = NotificationHelper.hasNotificationPermission(context)
+
+        if (!hasPerm) {
+            assertTrue("Should prompt on first open when permission is not granted", initialShouldShow)
+            NotificationHelper.markFirstOpenPromptShown(context)
+            assertFalse("Should not prompt after markFirstOpenPromptShown", NotificationHelper.shouldShowFirstOpenPrompt(context))
+        } else {
+            assertFalse("Should not prompt if permission is already granted", initialShouldShow)
+        }
+    }
+
+    @Test
+    fun openNotificationSettings_doesNotCrash() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        // Should execute smoothly without throwing exceptions
+        NotificationHelper.openNotificationSettings(context)
+    }
+
+    @Test
+    fun postSubscriptionConfirmedNotification_doesNotCrash() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        NotificationHelper.postSubscriptionConfirmedNotification(context)
+    }
 }

@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -39,10 +40,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import com.example.model.*
-import com.example.ui.components.CircularRevealTheme
+import com.example.theme.LocalThemeRevealController
+import com.example.theme.ThemeRevealProvider
 import com.example.ui.components.GlassyDock
 import com.example.ui.components.JobCardItem
-import com.example.ui.components.LocalCircularReveal
+import com.example.ui.components.NotificationPermissionDialog
 import com.example.ui.screens.AccountScreen
 import com.example.ui.screens.FeedScreen
 import com.example.ui.screens.HomeScreen
@@ -286,8 +288,9 @@ class MainActivity : ComponentActivity() {
             val viewModel: MainViewModel = viewModel()
             val uiState by viewModel.uiState.collectAsState()
 
-            CircularRevealTheme(
-                onToggleTheme = viewModel::onToggleTheme
+            ThemeRevealProvider(
+                onToggleTheme = viewModel::onToggleTheme,
+                isDarkTheme = uiState.isDarkTheme
             ) {
                 MyApplicationTheme(darkTheme = uiState.isDarkTheme) {
                     GovtJobsApp(
@@ -326,7 +329,8 @@ fun GovtJobsApp(
     val tokens = com.example.ui.theme.LocalAppThemeTokens.current
     val isDark = tokens.isDark
     val bgColor = tokens.background
-    val revealController = LocalCircularReveal.current
+    val revealController = LocalThemeRevealController.current
+    val wave = com.example.ui.components.LocalThemeWave.current
     var themeButtonCenter by remember { mutableStateOf<Offset?>(null) }
     val topBarColor = tokens.surface
     val onTopBarColor = tokens.textPrimary
@@ -377,10 +381,18 @@ fun GovtJobsApp(
         }
     }
 
+    // Check whether first-open notification permission popup should be displayed
+    LaunchedEffect(Unit) {
+        if (NotificationHelper.shouldShowFirstOpenPrompt(context)) {
+            onToggleAlerts(true)
+        }
+    }
+
     // Contextual Notification Permission Launcher for Android 13+ (API 33+)
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
+        NotificationHelper.markFirstOpenPromptShown(context)
         if (isGranted) {
             NotificationHelper.postSubscriptionConfirmedNotification(context)
         }
@@ -438,72 +450,117 @@ fun GovtJobsApp(
                         topBar = {
                             TopAppBar(
                                 title = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(vertical = 4.dp)
+                                    ) {
                                         if (uiState.currentTab == NavTab.HOME && !uiState.showBookmarksOnly) {
                                             com.example.ui.components.JobPulseLogo(symbolSize = 28.dp, textSize = 22.sp)
                                             Spacer(modifier = Modifier.width(10.dp))
-                                            Surface(
-                                                color = if (uiState.isOffline) Color(0xFFE65100) else Color(0xFFD32F2F),
-                                                shape = RoundedCornerShape(4.dp)
-                                            ) {
-                                                Text(
-                                                    text = if (uiState.isOffline) "OFFLINE" else "LIVE",
-                                                    color = Color.White,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.Bold,
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                )
-                                            }
-                                        } else {
-                                            Text(
-                                                text = screenTitle,
-                                                style = MaterialTheme.typography.titleLarge,
-                                                fontWeight = FontWeight.Bold
+                                            com.example.ui.components.JobPulseBadge(
+                                                text = if (uiState.isOffline) "CACHED" else "LIVE",
+                                                isLive = !uiState.isOffline
                                             )
+                                        } else {
+                                            Column {
+                                                Text(
+                                                    text = screenTitle,
+                                                    style = MaterialTheme.typography.titleLarge,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = onTopBarColor
+                                                )
+                                                if (uiState.showBookmarksOnly) {
+                                                    Text(
+                                                        text = "${uiState.jobs.size} saved opportunities",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = tokens.textTertiary
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 },
                                 colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = topBarColor,
+                                    containerColor = tokens.background,
                                     titleContentColor = onTopBarColor
                                 ),
                                 actions = {
-                                    IconButton(onClick = { onToggleAlerts(true) }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Notifications,
-                                            contentDescription = "Alerts",
-                                            tint = onTopBarColor
-                                        )
-                                    }
-                                    IconButton(onClick = onToggleBookmarksView) {
-                                        Icon(
-                                            imageVector = if (uiState.showBookmarksOnly) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
-                                            contentDescription = "Bookmarks",
-                                            tint = if (uiState.showBookmarksOnly) MaterialTheme.colorScheme.primary else onTopBarColor
-                                        )
-                                    }
-                                    IconButton(
-                                        onClick = {
-                                            if (revealController != null) {
-                                                revealController.toggleTheme(themeButtonCenter)
-                                            } else {
-                                                onToggleTheme()
-                                            }
-                                        },
-                                        modifier = Modifier.onGloballyPositioned { coordinates ->
-                                            val pos = coordinates.positionInRoot()
-                                            val size = coordinates.size
-                                            themeButtonCenter = Offset(
-                                                pos.x + size.width / 2f,
-                                                pos.y + size.height / 2f
-                                            )
-                                        }
+                                    com.example.ui.components.LiquidGlassBox(
+                                        shape = RoundedCornerShape(tokens.dockRadius),
+                                        elevation = 2.dp,
+                                        modifier = Modifier.padding(end = 8.dp)
                                     ) {
-                                        Icon(
-                                            imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                            contentDescription = "Theme",
-                                            tint = onTopBarColor
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
+                                        ) {
+                                            IconButton(
+                                                onClick = { onToggleAlerts(true) },
+                                                modifier = Modifier.size(38.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Notifications,
+                                                    contentDescription = "Alerts",
+                                                    tint = onTopBarColor,
+                                                    modifier = Modifier.size(19.dp)
+                                                )
+                                            }
+                                            IconButton(
+                                                onClick = onToggleBookmarksView,
+                                                modifier = Modifier.size(38.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (uiState.showBookmarksOnly) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
+                                                    contentDescription = "Bookmarks",
+                                                    tint = if (uiState.showBookmarksOnly) tokens.primary else onTopBarColor,
+                                                    modifier = Modifier.size(19.dp)
+                                                )
+                                            }
+                                            val themeIconTargetDark = if (wave.isWaveActive) wave.toDark else isDark
+                                            val themeIconRotation by animateFloatAsState(
+                                                targetValue = if (themeIconTargetDark) 0f else 180f,
+                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                                                label = "theme_icon_rot"
+                                            )
+                                            val themeIconScale by animateFloatAsState(
+                                                targetValue = if (wave.isWaveActive) {
+                                                    if (wave.progress < 0.22f) 0.84f else 1.10f
+                                                } else {
+                                                    if (isDark) 1f else 1.05f
+                                                },
+                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                                label = "theme_icon_scale"
+                                            )
+
+                                            IconButton(
+                                                onClick = {
+                                                    revealController.reveal(themeButtonCenter)
+                                                },
+                                                modifier = Modifier
+                                                    .size(38.dp)
+                                                    .onGloballyPositioned { coordinates ->
+                                                        val pos = coordinates.positionInRoot()
+                                                        val size = coordinates.size
+                                                        themeButtonCenter = Offset(
+                                                            pos.x + size.width / 2f,
+                                                            pos.y + size.height / 2f
+                                                        )
+                                                    }
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (themeIconTargetDark) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                                    contentDescription = "Theme",
+                                                    tint = onTopBarColor,
+                                                    modifier = Modifier
+                                                        .size(19.dp)
+                                                        .graphicsLayer {
+                                                            rotationZ = themeIconRotation
+                                                            scaleX = themeIconScale
+                                                            scaleY = themeIconScale
+                                                        }
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             )
@@ -584,32 +641,32 @@ fun GovtJobsApp(
                 }
             }
             
-            // Job Alert Subscription Dialog
+            // Job Alert Subscription & First-Open Permission Dialog
             if (uiState.showAlertsDialog) {
-                AlertDialog(
-                    onDismissRequest = { onToggleAlerts(false) },
-                    title = { Text("JobPulse Live Alerts", fontWeight = FontWeight.Bold) },
-                    text = { Text("Receive immediate push notifications whenever newly announced Central or State Government vacancies match your targeted categories and qualifications?") },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                onToggleAlerts(false)
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    if (NotificationHelper.hasNotificationPermission(context)) {
-                                        NotificationHelper.postSubscriptionConfirmedNotification(context)
-                                    } else {
-                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                    }
-                                } else {
-                                    NotificationHelper.postSubscriptionConfirmedNotification(context)
-                                }
+                NotificationPermissionDialog(
+                    isPermissionGranted = NotificationHelper.hasNotificationPermission(context),
+                    onEnableClick = {
+                        NotificationHelper.markFirstOpenPromptShown(context)
+                        onToggleAlerts(false)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            if (NotificationHelper.hasNotificationPermission(context)) {
+                                NotificationHelper.postSubscriptionConfirmedNotification(context)
+                            } else {
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                             }
-                        ) {
-                            Text("Subscribe Now")
+                        } else {
+                            NotificationHelper.postSubscriptionConfirmedNotification(context)
                         }
                     },
-                    dismissButton = {
-                        TextButton(onClick = { onToggleAlerts(false) }) { Text("Cancel") }
+                    onDismissRequest = {
+                        NotificationHelper.markFirstOpenPromptShown(context)
+                        onToggleAlerts(false)
+                    },
+                    onSendSampleAlert = {
+                        NotificationHelper.postSubscriptionConfirmedNotification(context)
+                    },
+                    onOpenSettings = {
+                        NotificationHelper.openNotificationSettings(context)
                     }
                 )
             }

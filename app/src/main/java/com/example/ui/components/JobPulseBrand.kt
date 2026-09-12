@@ -54,54 +54,54 @@ fun JobPulseSymbol(
     Canvas(modifier = modifier.size(size)) {
         val w = this.size.width
         val scale = w / 100f
-        val strokeLetters = Stroke(width = 6f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val strokeLetters = Stroke(width = 5.5f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
         val strokePulse = Stroke(width = 4.2f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
-        // J Path: Descending stem curving leftward into an elegant hook
+        // J Path: Fluid monoline with smooth curved hook
         val jPath = Path().apply {
-            moveTo(38f * scale, 26f * scale)
-            lineTo(38f * scale, 65f * scale)
+            moveTo(40f * scale, 30f * scale)
+            lineTo(40f * scale, 64f * scale)
             cubicTo(
-                38f * scale, 78f * scale,
-                22f * scale, 78f * scale,
-                22f * scale, 65f * scale
+                40f * scale, 74f * scale,
+                26f * scale, 74f * scale,
+                26f * scale, 64f * scale
             )
-            lineTo(22f * scale, 60f * scale)
+            lineTo(26f * scale, 58f * scale)
         }
         drawPath(jPath, resolvedPrimary, style = strokeLetters)
 
-        // P Path: Upright stem with rounded upper bowl
+        // P Path: Upright stem with balanced rounded bowl
         val pPath = Path().apply {
-            moveTo(54f * scale, 26f * scale)
-            lineTo(54f * scale, 78f * scale)
-            moveTo(54f * scale, 26f * scale)
-            lineTo(68f * scale, 26f * scale)
+            moveTo(54f * scale, 30f * scale)
+            lineTo(54f * scale, 76f * scale)
+            moveTo(54f * scale, 30f * scale)
+            lineTo(66f * scale, 30f * scale)
             cubicTo(
-                80f * scale, 26f * scale,
-                80f * scale, 52f * scale,
-                68f * scale, 52f * scale
+                76f * scale, 30f * scale,
+                76f * scale, 52f * scale,
+                66f * scale, 52f * scale
             )
             lineTo(54f * scale, 52f * scale)
         }
         drawPath(pPath, resolvedPrimary, style = strokeLetters)
 
-        // Pulse Waveform: Heartbeat discovery signal bridging J & P
+        // Pulse Waveform: Dynamic discovery heartbeat signal bridging J & P
         val pulsePath = Path().apply {
-            moveTo(18f * scale, 52f * scale)
-            lineTo(32f * scale, 52f * scale)
-            lineTo(42f * scale, 64f * scale)
-            lineTo(54f * scale, 36f * scale)
-            lineTo(65f * scale, 66f * scale)
-            lineTo(73f * scale, 52f * scale)
-            lineTo(80f * scale, 52f * scale)
+            moveTo(24f * scale, 52f * scale)
+            lineTo(34f * scale, 52f * scale)
+            lineTo(40f * scale, 61f * scale)
+            lineTo(50f * scale, 37f * scale)
+            lineTo(58f * scale, 65f * scale)
+            lineTo(66f * scale, 52f * scale)
+            lineTo(74f * scale, 52f * scale)
         }
         drawPath(pulsePath, resolvedPrimary, style = strokePulse)
 
-        // Amber Beacon Node: Discovery / opportunity terminus
+        // Radiant Saffron Beacon Node: Signal terminus / opportunity discovery point
         drawCircle(
             color = beaconColor,
-            radius = 4.5f * scale,
-            center = Offset(87f * scale, 52f * scale)
+            radius = 3.5f * scale,
+            center = Offset(81.5f * scale, 52f * scale)
         )
     }
 }

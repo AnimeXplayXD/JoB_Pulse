@@ -3,7 +3,6 @@ package com.example.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import com.example.ui.theme.LocalAppThemeTokens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -25,7 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.*
 import com.example.ui.components.JobCardItem
-import com.example.ui.theme.AppColors
+import com.example.ui.components.LiquidGlassBox
+import com.example.ui.theme.LocalAppThemeTokens
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -67,7 +67,7 @@ fun SearchScreen(
             .fillMaxSize()
             .testTag("specific_search_screen")
     ) {
-        // Search Header Surface
+        // Search Header Surface with Liquid Glass
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = tokens.surface,
@@ -84,16 +84,17 @@ fun SearchScreen(
                     onValueChange = { query = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(tokens.buttonRadius))
                         .border(
                             1.dp,
                             tokens.borderSubtle,
-                            RoundedCornerShape(14.dp)
+                            RoundedCornerShape(tokens.buttonRadius)
                         ),
                     placeholder = {
                         Text(
                             "Search by exam, department, role, or qualification...",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = tokens.textTertiary
                         )
                     },
                     leadingIcon = {
@@ -106,7 +107,7 @@ fun SearchScreen(
                     trailingIcon = {
                         if (query.isNotEmpty()) {
                             IconButton(onClick = { query = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear search query")
+                                Icon(Icons.Default.Clear, contentDescription = "Clear search query", tint = tokens.textSecondary)
                             }
                         }
                     },
@@ -128,7 +129,7 @@ fun SearchScreen(
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = tokens.textSecondary,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.4.sp
                 )
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -140,7 +141,7 @@ fun SearchScreen(
                             selected = isSelected,
                             onClick = { selectedCategory = category },
                             label = { Text(category.displayName, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(tokens.chipRadius),
                             colors = FilterChipDefaults.filterChipColors(
                                 containerColor = tokens.surfaceElevated,
                                 selectedContainerColor = tokens.primary,
@@ -158,7 +159,7 @@ fun SearchScreen(
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = tokens.textSecondary,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.4.sp
                 )
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -170,7 +171,7 @@ fun SearchScreen(
                             selected = isSelected,
                             onClick = { selectedQualification = qual },
                             label = { Text(qual, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(tokens.chipRadius),
                             colors = FilterChipDefaults.filterChipColors(
                                 containerColor = tokens.surfaceElevated,
                                 selectedContainerColor = tokens.primaryContainer,
@@ -225,7 +226,7 @@ fun SearchScreen(
                         onlyApplyActive = false
                     }
                 ) {
-                    Text("Reset Filters", style = MaterialTheme.typography.labelSmall)
+                    Text("Reset Filters", style = MaterialTheme.typography.labelSmall, color = tokens.primary)
                 }
             }
         }
@@ -263,7 +264,7 @@ fun SearchScreen(
         } else {
             LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 100.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 110.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
             ) {

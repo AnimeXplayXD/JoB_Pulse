@@ -43,8 +43,16 @@ object AppColors {
     val DangerRed = Color(0xFFCF222E)
     val LiveRed = Color(0xFFFF3B30)
 
-    // Glass Highlights
+    // Glass Highlights & Material Tokens
     val GlassHighlightTop = Color(0x38FFFFFF)
     val GlassHighlightBottom = Color(0x08FFFFFF)
     val GlassShadowAmbient = Color(0x40000000)
+
+    // Liquid Glass Surface Tints
+    val DarkGlassTint = Color(0xCC161C24)
+    val LightGlassTint = Color(0xEBFFFFFF)
+    val DarkGlassBorder = Color(0x40FFFFFF)
+    val LightGlassBorder = Color(0x80FFFFFF)
+    val BrandSaffron = Color(0xFFFF9933)
+    val WarningAmber = Color(0xFFD29922)
 }
