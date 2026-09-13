@@ -29,6 +29,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.nestedscroll.*
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -37,6 +38,8 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -63,7 +66,10 @@ class MainActivity : ComponentActivity() {
         val preferences = AndroidUserPreferences(applicationContext)
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T = MainViewModel(preferences = preferences) as T
+            override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+                require(modelClass.isAssignableFrom(MainViewModel::class.java))
+                return MainViewModel(preferences = preferences, savedStateHandle = extras.createSavedStateHandle()) as T
+            }
         }
         setContent {
             val model: MainViewModel = viewModel(factory = factory)
@@ -112,6 +118,8 @@ fun GovtJobsApp(
     val savedTabs = rememberSaveableStateHolder()
     var selectedId by rememberSaveable { mutableStateOf<Int?>(null) }
     var dockVisible by remember { mutableStateOf(true) }
+    var dockHeightPx by remember { mutableIntStateOf(0) }
+    val dockClearance = maxOf(120.dp, with(LocalDensity.current) { dockHeightPx.toDp() } + 16.dp)
     var themeCenter by remember { mutableStateOf<Offset?>(null) }
     var permissionGranted by remember { mutableStateOf(NotificationHelper.hasNotificationPermission(context)) }
     var showEducation by rememberSaveable { mutableStateOf(NotificationHelper.shouldShowFirstOpenPrompt(context)) }
@@ -154,12 +162,12 @@ fun GovtJobsApp(
         }
     }
     val threshold = with(LocalDensity.current) { 28.dp.toPx() }
-    val scroll = remember(threshold) {
+    val scroll = remember(threshold, uiState.currentTab) {
         object : NestedScrollConnection {
             var distance = 0f
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (distance * available.y < 0) distance = 0f
-                distance += available.y
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (distance * consumed.y < 0) distance = 0f
+                distance += consumed.y
                 if (distance < -threshold) { dockVisible = false; distance = 0f }
                 if (distance > threshold) { dockVisible = true; distance = 0f }
                 return Offset.Zero
@@ -178,7 +186,11 @@ fun GovtJobsApp(
                     val job = uiState.allJobs.find { it.id == detailId }
                     if (job == null) {
                         Column(Modifier.fillMaxSize().statusBarsPadding().padding(24.dp)) {
-                            Text("This notice is no longer available.", color = tokens.textPrimary)
+                            Text(
+                                uiState.cacheError ?: if (!uiState.hasLoadedJobs) "Loading saved notice…" else "This notice is no longer available.",
+                                color = tokens.textPrimary
+                            )
+                            if (uiState.cacheError != null) TextButton(onRefresh) { Text("Retry") }
                             TextButton({ selectedId = null }) { Text("Back to jobs") }
                         }
                     } else JobDetailScreen(
@@ -187,6 +199,7 @@ fun GovtJobsApp(
                     )
                 } else {
                     Scaffold(
+                        modifier = Modifier.imePadding(),
                         containerColor = tokens.background,
                         snackbarHost = { SnackbarHost(snackbar) },
                         topBar = {
@@ -213,8 +226,9 @@ fun GovtJobsApp(
                     ) { padding ->
                         val layer = rememberGraphicsLayer()
                         val backdrop = remember(layer) { GlassBackdrop(layer) }
-                        Box(Modifier.fillMaxSize().padding(padding).nestedScroll(scroll)) {
-                            Column(Modifier.fillMaxSize().recordGlassBackdrop(backdrop)) {
+                        Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).nestedScroll(scroll)) {
+                            Column(Modifier.fillMaxSize().recordGlassBackdrop(backdrop).background(tokens.background)) {
+                                uiState.cacheError?.let { Text(it, Modifier.padding(horizontal = 20.dp, vertical = 4.dp), color = tokens.textSecondary) }
                                 if (BuildConfig.DEBUG) Text("Development data · not verified recruitment information", Modifier.padding(horizontal = 20.dp, vertical = 4.dp), color = tokens.textSecondary, style = MaterialTheme.typography.bodySmall)
                                 uiState.syncMessage?.let { Text(it, Modifier.padding(horizontal = 20.dp, vertical = 4.dp), color = tokens.textSecondary, style = MaterialTheme.typography.bodySmall) }
                                 if (showEducation && !permissionGranted) {
@@ -226,30 +240,36 @@ fun GovtJobsApp(
                                         }
                                     }
                                 }
+                                CompositionLocalProvider(LocalDockContentPadding provides dockClearance) {
                                 Crossfade(uiState.currentTab, Modifier.weight(1f), animationSpec = tween(160), label = "tab_content") { tab ->
                                     savedTabs.SaveableStateProvider(tab.name) {
+                                        // Only the active tab owns shared keys during tab crossfades.
+                                        val tabSharedScope = if (tab == uiState.currentTab) this@SharedTransitionLayout else null
                                         when (tab) {
                                             NavTab.HOME -> HomeScreen(
                                                 home, uiState.searchQuery, onSearchQueryChanged,
                                                 uiState.selectedCategory, onCategorySelected, uiState.selectedState, onStateSelected,
                                                 uiState.jobs, uiState.bookmarkedJobIds, onBookmarkToggle,
-                                                uiState.isLoading, uiState.showBookmarksOnly, onRefresh,
+                                                uiState.isLoading || (!uiState.hasLoadedJobs && uiState.cacheError == null) || uiState.isFiltering, uiState.showBookmarksOnly, onRefresh,
                                                 { onTabSelected(NavTab.SEARCH) }, { selectedId = it.id },
-                                                sharedTransitionScope = this@SharedTransitionLayout, animatedVisibilityScope = detailScope
+                                                sharedTransitionScope = tabSharedScope, animatedVisibilityScope = detailScope
                                             )
                                             NavTab.FEED -> FeedScreen(feed)
                                             NavTab.SEARCH -> SearchScreen(
                                                 search, uiState.bookmarkedJobIds, onBookmarkToggle, { selectedId = it.id },
                                                 allJobs = uiState.allJobs,
-                                                sharedTransitionScope = this@SharedTransitionLayout, animatedVisibilityScope = detailScope
+                                                sharedTransitionScope = tabSharedScope, animatedVisibilityScope = detailScope
                                             )
                                             NavTab.ACCOUNT -> AccountScreen(account, uiState.bookmarkedJobIds.size, onToggleBookmarksView, uiState.isDarkTheme, onToggleTheme)
                                         }
                                     }
                                 }
+                                }
                             }
                             CompositionLocalProvider(LocalGlassBackdrop provides backdrop) {
-                                GlassyDock(uiState.currentTab, onTabSelected, dockVisible, uiState.isDarkTheme, Modifier.align(Alignment.BottomCenter))
+                                val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+                                GlassyDock(uiState.currentTab, onTabSelected, dockVisible && !keyboardVisible, uiState.isDarkTheme,
+                                    Modifier.align(Alignment.BottomCenter).onSizeChanged { if (it.height > 0) dockHeightPx = it.height })
                             }
                         }
                     }
@@ -259,6 +279,7 @@ fun GovtJobsApp(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun JobCard(job: Job, isBookmarked: Boolean, onBookmarkToggle: () -> Unit) {
     JobCardItem(job, isBookmarked, onBookmarkToggle)

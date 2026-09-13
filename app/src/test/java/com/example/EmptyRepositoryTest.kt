@@ -11,10 +11,11 @@ class EmptyRepositoryTest {
     @Test fun emptyRepository_isNeverReplacedWithFixtures() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {
-            val model = MainViewModel(MainViewModelTest.FakeJobRepository(initialJobs = emptyList()))
+            val model = MainViewModel(MainViewModelTest.FakeJobRepository(initialJobs = emptyList()), filterDispatcher = StandardTestDispatcher(testScheduler))
             advanceUntilIdle()
             assertTrue(model.uiState.value.allJobs.isEmpty())
             model.onSearchQueryChanged("anything")
+            advanceUntilIdle()
             assertTrue(model.uiState.value.jobs.isEmpty())
         } finally { Dispatchers.resetMain() }
     }
