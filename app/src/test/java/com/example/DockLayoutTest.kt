@@ -40,6 +40,22 @@ class DockLayoutTest {
         }
     }
 
+    @Test fun drag_selectsDestinationBeforeRelease() {
+        rule.setContent {
+            MyApplicationTheme {
+                var tab by remember { mutableStateOf(NavTab.HOME) }
+                Box(Modifier.width(400.dp)) { GlassyDock(tab, { tab = it }, true, true) }
+            }
+        }
+        val dock = rule.onNodeWithTag("floating_glassy_dock")
+        val origin = dock.fetchSemanticsNode().boundsInRoot.topLeft
+        val start = rule.onNodeWithTag("dock_HOME").fetchSemanticsNode().boundsInRoot.center - origin
+        val end = rule.onNodeWithTag("dock_FEED").fetchSemanticsNode().boundsInRoot.center - origin
+        dock.performTouchInput { down(start); moveTo(end, durationMillis = 200) }
+        rule.onNodeWithTag("dock_FEED").assertIsSelected()
+        dock.performTouchInput { up() }
+    }
+
     @Test fun narrowWindow_fitsWithoutSacrificingTouchTargets() {
         rule.setContent {
             MyApplicationTheme {

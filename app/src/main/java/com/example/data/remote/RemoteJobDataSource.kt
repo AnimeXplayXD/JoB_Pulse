@@ -16,12 +16,8 @@ class RetrofitRemoteJobDataSource(
     override suspend fun fetchJobsSync(updatedSince: String?): JobsSyncResponseDto {
         val response = apiService.getJobs(updatedSince = updatedSince)
         if (response.isSuccessful) {
-            return response.body() ?: JobsSyncResponseDto(
-                jobs = emptyList(),
-                serverTime = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
-                    timeZone = java.util.TimeZone.getTimeZone("UTC")
-                }.format(java.util.Date())
-            )
+            // Advancing a cursor fabricated from device time can permanently skip records.
+            return response.body() ?: throw IOException("Empty recruitment sync response")
         } else {
             throw IOException("Failed to fetch jobs: HTTP ${response.code()} ${response.message()}")
         }

@@ -48,6 +48,14 @@ class ThemeRevealTest {
     }
 
     @Test
+    fun topLeftTap_isNotReplacedWithScreenCenter() {
+        val outline = CircularRevealShape(0.5f, Offset.Zero).createOutline(testSize, LayoutDirection.Ltr, testDensity) as Outline.Generic
+        val bounds = outline.path.getBounds()
+        assertEquals(0f, bounds.center.x, 0.01f)
+        assertEquals(0f, bounds.center.y, 0.01f)
+    }
+
+    @Test
     fun circularRevealShape_midProgress_calculatesCorrectGeometry() {
         val origin = Offset(1000f, 80f) // Top right button
         val shape = CircularRevealShape(progress = 0.5f, origin = origin)

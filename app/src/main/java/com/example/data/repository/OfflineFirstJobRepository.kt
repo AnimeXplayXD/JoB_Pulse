@@ -6,6 +6,9 @@ import com.example.data.remote.RemoteJobDataSource
 import com.example.model.Job
 import com.example.model.Organisation
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
@@ -20,11 +23,12 @@ class OfflineFirstJobRepository(
     private val transactionRunner: suspend (suspend () -> Unit) -> Unit = { block -> database?.withTransaction { block() } ?: block() }
 ) : JobRepository {
     private val syncMutex = Mutex()
-    override fun getJobsStream(): Flow<List<Job>> = jobDao.getJobsFlow().map { rows -> rows.map(JobMappers::toDomain) }
-    override fun getJobByIdStream(id: Int): Flow<Job?> = jobDao.getJobByIdFlow(id).map { it?.let(JobMappers::toDomain) }
-    override fun getOrganisationsStream(): Flow<List<Organisation>> = organisationDao.getOrganisationsFlow().map { rows -> rows.map(JobMappers::toDomain) }
-    override fun searchJobsStream(query: String): Flow<List<Job>> = jobDao.searchJobsFlow(query).map { rows -> rows.map(JobMappers::toDomain) }
-    override suspend fun refresh(force: Boolean): Result<Unit> = syncMutex.withLock {
+    override fun getJobsStream(): Flow<List<Job>> = jobDao.getJobsFlow().map { rows -> rows.map(JobMappers::toDomain) }.flowOn(Dispatchers.Default)
+    override fun getJobByIdStream(id: Int): Flow<Job?> = jobDao.getJobByIdFlow(id).map { it?.let(JobMappers::toDomain) }.flowOn(Dispatchers.Default)
+    override fun getOrganisationsStream(): Flow<List<Organisation>> = organisationDao.getOrganisationsFlow().map { rows -> rows.map(JobMappers::toDomain) }.flowOn(Dispatchers.Default)
+    override fun searchJobsStream(query: String): Flow<List<Job>> = jobDao.searchJobsFlow(query).map { rows -> rows.map(JobMappers::toDomain) }.flowOn(Dispatchers.Default)
+    override suspend fun refresh(force: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        syncMutex.withLock {
         try {
             val metadata = syncMetadataDao.getMetadata("jobs_sync")
             val since = if (force || jobDao.getActiveJobCount() == 0) null else metadata?.lastSyncTimestamp
@@ -39,5 +43,6 @@ class OfflineFirstJobRepository(
             Result.success(Unit)
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (error: Exception) { Result.failure(error) }
+        }
     }
 }

@@ -90,11 +90,13 @@ fun GlassyDock(
         exit = slideOutVertically { it } + fadeOut(tween(120))
     ) {
         BoxWithConstraints(
-            Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp),
+            Modifier.fillMaxWidth().navigationBarsPadding().padding(vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
+            // Reduce exterior margins before shrinking the four 48dp touch targets.
+            val sideMargin = minOf(16.dp, ((maxWidth - 204.dp) / 2).coerceAtLeast(0.dp))
             LiquidGlassBox(
-                modifier = Modifier.width(minOf(preferredWidth, maxWidth)).testTag("floating_glassy_dock"),
+                modifier = Modifier.width(minOf(preferredWidth, maxWidth - sideMargin * 2)).testTag("floating_glassy_dock"),
                 shape = RoundedCornerShape(26.dp), elevation = 8.dp
             ) {
                 Box(
@@ -155,7 +157,7 @@ fun GlassyDock(
                                 Spacer(Modifier.height(2.dp))
                                 // Reserved label space keeps icons still during selection changes.
                                 Box(Modifier.fillMaxWidth().height(labelHeight), contentAlignment = Alignment.Center) {
-                                    AnimatedVisibility(selected, enter = fadeIn(tween(100)), exit = fadeOut(tween(80))) {
+                                    androidx.compose.animation.AnimatedVisibility(selected, enter = fadeIn(tween(100)), exit = fadeOut(tween(80))) {
                                         Text(
                                             tab.title, Modifier.padding(horizontal = 4.dp).clearAndSetSemantics {},
                                             style = labelStyle, color = tokens.primary, maxLines = 1,

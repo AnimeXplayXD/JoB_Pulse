@@ -141,7 +141,7 @@ See [the version catalog](gradle/libs.versions.toml) and [app build configuratio
 Use Android Studio compatible with the configured Android Gradle Plugin, the Java 17 toolchain, and the Android SDK platform required by compile SDK `36.1`. Configure the SDK location through Android Studio or your local SDK settings. Use the repository's Gradle wrapper rather than a separately installed Gradle version.
 
 ```bash
-git clone https://gitlab.com/AnimeXplayXD1/JoB_Pulse.git
+git clone https://github.com/AnimeXplayXD/JoB_Pulse.git
 cd JoB_Pulse
 
 # On macOS/Linux, if the wrapper is not executable:
@@ -161,6 +161,20 @@ adb shell am start -n com.aistudio.govtjobs.pxrtwa/com.example.MainActivity
 The debug build uses development data by default. `.env.example` supplies defaults for the configured properties plugin; adding `.env` does not connect production ingestion or notification delivery. Release signing also requires the keystore and environment configuration defined in `app/build.gradle.kts`.
 
 ## Testing
+
+The platform-independent validation entry point is [`scripts/validate-android.sh`](scripts/validate-android.sh). On macOS/Linux, run it from a configured development environment:
+
+```bash
+bash scripts/validate-android.sh
+```
+
+It runs unit/Robolectric tests, lint, debug APK assembly, release Kotlin compilation, and instrumented-test APK assembly. It does not sign a production release or execute device tests. On Windows, the equivalent command is:
+
+```powershell
+.\gradlew.bat --no-daemon --stacktrace --continue testDebugUnitTest lintDebug assembleDebug compileReleaseKotlin assembleDebugAndroidTest
+```
+
+For individual checks:
 
 ```bash
 # Unit, Robolectric, and configured Compose tests
@@ -183,7 +197,7 @@ Selected tests cover:
 - `MainViewModelTest`, `JobRepositoryTest`, and `ThemeRevealTest`: state, repository, and reveal behavior.
 - `BrandIdentityTest`: drawable loading, app naming, notification channels, and monochrome geometry.
 
-The [Android build workflow](.github/workflows/android-build-test.yml) defines GitHub Actions build/test steps. Its existence is not evidence of a successful run. Check actual build results for the commit being tested.
+The [JobPulse validation workflow](.github/workflows/android-build-test.yml) calls the same script on pushes to `main`, pull requests targeting `main`, or manual dispatch. It uploads available HTML/XML reports and debug APKs, including when validation fails. An uploaded APK alone is not a release-readiness signal; check the validation step and reports for the exact commit. The workflow has not been verified on the destination repository by this change.
 
 Before release, validate interrupted gestures, rapid tab switching, large text, TalkBack, offline/empty states, denied permissions, launcher masks, and light/dark appearance. Measure startup and scrolling on physical devices, including high-refresh-rate and lower-end hardware; smoothness has not been established by screenshots or token-value tests.
 
@@ -225,6 +239,5 @@ Verify recruitment details, eligibility, dates, application procedures, and fees
 
 ## Project links
 
-- [GitLab repository](https://gitlab.com/AnimeXplayXD1/JoB_Pulse)
-- [GitHub repository](https://github.com/AnimeXplayXD/JoB_Pulse)
-- [GitHub wiki](https://github.com/AnimeXplayXD/JoB_Pulse/wiki) — supplementary material; consult the current code and build files for implementation details.
+- [Source repository](https://github.com/AnimeXplayXD/JoB_Pulse)
+- [Project wiki](https://github.com/AnimeXplayXD/JoB_Pulse/wiki) — supplementary material; consult the current code and build files for implementation details.

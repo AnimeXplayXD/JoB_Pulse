@@ -1,10 +1,14 @@
-name: Android Build & Test CI
+name: JobPulse Android Validation
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,54 +16,62 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Build & Test (Debug)
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    name: Build, lint and test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Set up JDK 22
+      - name: Set up Java 17 toolchain
         uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
-          java-version: '22'
-          cache: 'gradle'
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Make Gradle Wrapper Executable
-        run: chmod +x gradlew
+      - name: Install configured SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-36.1" "build-tools;36.0.0"
 
-      - name: Generate Dummy Google Services File (if missing)
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libgl1 libegl1 libgles2 libxrender1 libxi6 libxtst6 libfreetype6 fonts-dejavu-core
+
+      - name: Generate development Google Services configuration if missing
         run: |
           if [ ! -f "app/google-services.json" ]; then
             echo '{"project_info":{"project_number":"0","project_id":"dummy","storage_bucket":"dummy.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:0:android:0","android_client_info":{"package_name":"com.aistudio.govtjobs.pxrtwa"}},"oauth_client":[],"api_key":[{"current_key":"dummy"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}]}' > app/google-services.json
           fi
 
-      - name: Compile Debug Sources
-        run: ./gradlew compileDebugSources --no-daemon
+      - name: Check validation script syntax
+        run: bash -n scripts/validate-android.sh
 
-      - name: Run Unit & Robolectric Tests
-        run: ./gradlew testDebugUnitTest --no-daemon
+      - name: Run JobPulse validation
+        run: bash scripts/validate-android.sh
 
-      - name: Assemble Debug APK
-        run: ./gradlew assembleDebug --no-daemon
-
-      - name: Upload Test Results
+      - name: Upload validation reports
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: unit-test-results
-          path: app/build/reports/tests/testDebugUnitTest/
+          name: jobpulse-validation-reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          if-no-files-found: warn
           retention-days: 7
 
-      - name: Upload Debug APK
-        if: success()
+      - name: Upload available debug APKs
+        if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: jobpulse-debug-apks
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/androidTest/debug/*.apk
+          if-no-files-found: warn
           retention-days: 14
