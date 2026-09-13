@@ -157,7 +157,7 @@ fun GlassyDock(
                                 Spacer(Modifier.height(2.dp))
                                 // Reserved label space keeps icons still during selection changes.
                                 Box(Modifier.fillMaxWidth().height(labelHeight), contentAlignment = Alignment.Center) {
-                                    AnimatedVisibility(selected, enter = fadeIn(tween(100)), exit = fadeOut(tween(80))) {
+                                    androidx.compose.animation.AnimatedVisibility(selected, enter = fadeIn(tween(100)), exit = fadeOut(tween(80))) {
                                         Text(
                                             tab.title, Modifier.padding(horizontal = 4.dp).clearAndSetSemantics {},
                                             style = labelStyle, color = tokens.primary, maxLines = 1,

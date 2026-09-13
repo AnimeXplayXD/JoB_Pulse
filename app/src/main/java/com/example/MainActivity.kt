@@ -279,6 +279,7 @@ fun GovtJobsApp(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun JobCard(job: Job, isBookmarked: Boolean, onBookmarkToggle: () -> Unit) {
     JobCardItem(job, isBookmarked, onBookmarkToggle)

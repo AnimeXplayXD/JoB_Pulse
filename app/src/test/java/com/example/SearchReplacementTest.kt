@@ -13,6 +13,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

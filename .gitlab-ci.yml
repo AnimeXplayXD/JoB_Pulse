@@ -18,6 +18,7 @@ android-validate:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   cache:
     key: android-gradle-validation
+    when: always
     paths:
       - .gradle/caches/
       - .gradle/wrapper/
