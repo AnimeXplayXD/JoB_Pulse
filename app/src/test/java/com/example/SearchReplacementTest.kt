@@ -29,5 +29,6 @@ class SearchReplacementTest {
         rule.waitUntil(5_000) { rule.onAllNodesWithTag("job_card_123").fetchSemanticsNodes().isNotEmpty() }
         rule.runOnIdle { replace() }
         rule.onNodeWithTag("job_card_123").assertExists()
+        rule.onNodeWithText("1 opportunities").assertExists()
     }
 }

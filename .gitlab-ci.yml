@@ -33,7 +33,7 @@ android-validate:
     - 'set +o pipefail; yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null; set -o pipefail'
     - sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-36.1" "build-tools;36.0.0"
   script:
-    - bash ./gradlew --no-daemon --stacktrace --continue testDebugUnitTest lintDebug assembleDebug
+    - bash ./gradlew --no-daemon --stacktrace --continue testDebugUnitTest lintDebug assembleDebug compileReleaseKotlin assembleDebugAndroidTest
   artifacts:
     when: always
     expire_in: 7 days

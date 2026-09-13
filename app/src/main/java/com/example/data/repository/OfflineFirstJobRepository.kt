@@ -7,6 +7,7 @@ import com.example.model.Job
 import com.example.model.Organisation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -26,7 +27,8 @@ class OfflineFirstJobRepository(
     override fun getJobByIdStream(id: Int): Flow<Job?> = jobDao.getJobByIdFlow(id).map { it?.let(JobMappers::toDomain) }.flowOn(Dispatchers.Default)
     override fun getOrganisationsStream(): Flow<List<Organisation>> = organisationDao.getOrganisationsFlow().map { rows -> rows.map(JobMappers::toDomain) }.flowOn(Dispatchers.Default)
     override fun searchJobsStream(query: String): Flow<List<Job>> = jobDao.searchJobsFlow(query).map { rows -> rows.map(JobMappers::toDomain) }.flowOn(Dispatchers.Default)
-    override suspend fun refresh(force: Boolean): Result<Unit> = syncMutex.withLock {
+    override suspend fun refresh(force: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        syncMutex.withLock {
         try {
             val metadata = syncMetadataDao.getMetadata("jobs_sync")
             val since = if (force || jobDao.getActiveJobCount() == 0) null else metadata?.lastSyncTimestamp
@@ -41,5 +43,6 @@ class OfflineFirstJobRepository(
             Result.success(Unit)
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (error: Exception) { Result.failure(error) }
+        }
     }
 }
