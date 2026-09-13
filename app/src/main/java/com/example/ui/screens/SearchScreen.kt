@@ -56,7 +56,8 @@ fun SearchScreen(
             SearchResult(filter, allJobs, matches)
         }
     }
-    val current = result?.takeIf { it.filter == filter && it.source === allJobs }
+    // Effect keys use structural equality; result validity must use the same contract.
+    val current = result?.takeIf { it.filter == filter && it.source == allJobs }
     val tokens = LocalAppThemeTokens.current
     Column(modifier.fillMaxSize().testTag("specific_search_screen")) {
         OutlinedTextField(

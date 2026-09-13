@@ -63,7 +63,7 @@ class MainViewModelTest {
     @Test
     fun mainViewModel_initializesAndObservesRepositoryStream() = runTest {
         val repository = FakeJobRepository()
-        val viewModel = MainViewModel(repository = repository)
+        val viewModel = MainViewModel(repository = repository, filterDispatcher = testDispatcher)
 
         advanceUntilIdle()
 
