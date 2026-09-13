@@ -15,152 +15,65 @@ import com.example.MainActivity
 import com.example.R
 
 object NotificationHelper {
-
     const val CHANNEL_ID_ALERTS = "recruitment_alerts"
     const val CHANNEL_NAME_ALERTS = "JobPulse Recruitment Alerts"
-    const val CHANNEL_DESC_ALERTS = "Notifications for newly announced vacancies and application deadlines"
-
+    const val CHANNEL_DESC_ALERTS = "Recruitment notices and deadline reminders"
     const val CHANNEL_ID_MILESTONES = "exam_milestones"
     const val CHANNEL_NAME_MILESTONES = "JobPulse Exam Dates & Milestones"
-    const val CHANNEL_DESC_MILESTONES = "Timely updates on admit cards, examination schedules, and results"
+    const val CHANNEL_DESC_MILESTONES = "Exam dates and recruitment milestones"
+    private fun prefs(context: Context) = context.getSharedPreferences("jobpulse_notification_prefs", Context.MODE_PRIVATE)
 
-    private const val NOTIFICATION_ID_CONFIRMATION = 1001
-
-    /**
-     * Initializes notification channels required on Android 8.0+ (API 26+).
-     */
     fun setupNotificationChannels(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
-
-            // High priority channel for critical alerts
-            val alertsChannel = NotificationChannel(
-                CHANNEL_ID_ALERTS,
-                CHANNEL_NAME_ALERTS,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = CHANNEL_DESC_ALERTS
-                enableLights(true)
-                enableVibration(true)
-            }
-
-            // Default priority channel for exam date / result milestones
-            val milestonesChannel = NotificationChannel(
-                CHANNEL_ID_MILESTONES,
-                CHANNEL_NAME_MILESTONES,
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = CHANNEL_DESC_MILESTONES
-            }
-
-            notificationManager.createNotificationChannel(alertsChannel)
-            notificationManager.createNotificationChannel(milestonesChannel)
+        if (Build.VERSION.SDK_INT >= 26) {
+            val manager = context.getSystemService(NotificationManager::class.java) ?: return
+            manager.createNotificationChannels(listOf(
+                NotificationChannel(CHANNEL_ID_ALERTS, CHANNEL_NAME_ALERTS, NotificationManager.IMPORTANCE_HIGH).apply { description = CHANNEL_DESC_ALERTS },
+                NotificationChannel(CHANNEL_ID_MILESTONES, CHANNEL_NAME_MILESTONES, NotificationManager.IMPORTANCE_DEFAULT).apply { description = CHANNEL_DESC_MILESTONES }
+            ))
         }
     }
 
-    /**
-     * Checks if notification permission is granted on the device.
-     */
     fun hasNotificationPermission(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            NotificationManagerCompat.from(context).areNotificationsEnabled()
-        }
+        val runtimeGranted = Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        return runtimeGranted && NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
 
-    /**
-     * Posts a notification confirming that job alert subscriptions are active.
-     */
+    fun canPostToChannel(context: Context, channelId: String): Boolean {
+        if (!hasNotificationPermission(context)) return false
+        if (Build.VERSION.SDK_INT < 26) return true
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return false
+        val channel = manager.getNotificationChannel(channelId) ?: return false
+        if (channel.importance == NotificationManager.IMPORTANCE_NONE) return false
+        if (Build.VERSION.SDK_INT >= 28 && channel.group != null && manager.getNotificationChannelGroup(channel.group)?.isBlocked == true) return false
+        return true
+    }
+
+    // Retained for callers/tests; this is explicitly a test, never a subscription claim.
     fun postSubscriptionConfirmedNotification(context: Context) {
-        if (!hasNotificationPermission(context)) return
         setupNotificationChannels(context)
-
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
-        )
-
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID_ALERTS)
+        if (!canPostToChannel(context, CHANNEL_ID_MILESTONES)) return
+        val intent = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID_MILESTONES)
             .setSmallIcon(R.drawable.ic_jobpulse_notification)
-            .setContentTitle("JobPulse • Live Alerts Activated")
-            .setContentText("You will receive timely alerts for verified Central & State vacancies.")
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText("JobPulse alert subscription active. You will receive notifications when new recruitment notices match your preferences.")
-            )
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .build()
-
-        try {
-            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_CONFIRMATION, notification)
-        } catch (e: SecurityException) {
-            // Permission revoked concurrently
-        }
+            .setContentTitle("JobPulse notification test")
+            .setContentText("Notifications are permitted. This does not activate an alert subscription.")
+            .setContentIntent(intent).setAutoCancel(true).build()
+        try { NotificationManagerCompat.from(context).notify(1001, notification) }
+        catch (_: SecurityException) { /* Permission may be revoked between check and delivery. */ }
     }
 
-    private const val PREFS_NAME = "jobpulse_notification_prefs"
-    private const val KEY_FIRST_OPEN_PROMPTED = "first_open_notification_prompted"
+    fun shouldShowFirstOpenPrompt(context: Context): Boolean = !hasNotificationPermission(context) && !prefs(context).getBoolean("first_open_notification_prompted", false)
+    fun markFirstOpenPromptShown(context: Context) { prefs(context).edit().putBoolean("first_open_notification_prompted", true).apply() }
+    fun resetFirstOpenPromptForTesting(context: Context) { prefs(context).edit().remove("first_open_notification_prompted").remove("permission_requested").apply() }
+    fun wasPermissionRequested(context: Context): Boolean = prefs(context).getBoolean("permission_requested", false)
+    fun markPermissionRequested(context: Context) { prefs(context).edit().putBoolean("permission_requested", true).apply() }
 
-    /**
-     * Determines whether the first-open notification permission popup should be displayed.
-     * Returns true ONLY if:
-     * 1. Notification permission has NOT been granted earlier.
-     * 2. The user has not already been prompted on a first open.
-     */
-    fun shouldShowFirstOpenPrompt(context: Context): Boolean {
-        if (hasNotificationPermission(context)) {
-            return false
-        }
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return !prefs.getBoolean(KEY_FIRST_OPEN_PROMPTED, false)
-    }
-
-    /**
-     * Records that the first-open notification prompt has been presented and handled.
-     */
-    fun markFirstOpenPromptShown(context: Context) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putBoolean(KEY_FIRST_OPEN_PROMPTED, true).apply()
-    }
-
-    /**
-     * Resets the first-open prompt state for testing purposes.
-     */
-    fun resetFirstOpenPromptForTesting(context: Context) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().remove(KEY_FIRST_OPEN_PROMPTED).apply()
-    }
-
-    /**
-     * Directs the user to the system notification settings for this application.
-     */
     fun openNotificationSettings(context: Context) {
-        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
-            }
-        } else {
-            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = android.net.Uri.fromParts("package", context.packageName, null)
-            }
-        }
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        try {
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            // Fallback gracefully
+        val intent = if (Build.VERSION.SDK_INT >= 26) Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+            else Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${context.packageName}"))
+        try { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        catch (_: android.content.ActivityNotFoundException) {
+            android.widget.Toast.makeText(context, "Open notification settings from Android Settings.", android.widget.Toast.LENGTH_LONG).show()
         }
     }
 }

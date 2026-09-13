@@ -1,40 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-
-    <!-- Material You / Android 13+ Themed Icon Monochrome Layer -->
-    <!-- Single-color (pure white #FFFFFF) geometry allowing OS dynamic color tinting -->
-
-    <!-- J Letterform: Fluid monoline with smooth curved hook, stroke 5.5dp -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="5.5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M 40,30 L 40,64 C 40,74 26,74 26,64 L 26,58" />
-
-    <!-- P Letterform: Upright stem with balanced rounded bowl, stroke 5.5dp -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="5.5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M 54,30 L 54,76 M 54,30 L 66,30 C 76,30 76,52 66,52 L 54,52" />
-
-    <!-- Pulse Signal Waveform: Dynamic discovery heartbeat signal, stroke 4.2dp -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="4.2"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M 24,52 L 34,52 L 40,61 L 50,37 L 58,65 L 66,52 L 74,52" />
-
-    <!-- Beacon Node: Solid monochrome node for seamless dynamic color tinting -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M 81.5,48.5 A 3.5,3.5 0 1,0 81.5,55.5 A 3.5,3.5 0 1,0 81.5,48.5 Z" />
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="5.5" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M45,29 L45,56 C45,69 29,69 29,57" />
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="5.5" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M59,65 L59,29 L68,29 C82,29 82,49 68,49 L59,49" />
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="2.5" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M36,77 L45,77 L49,72 L54,81 L59,75 L63,77 L73,77" />
 </vector>
-

@@ -1,17 +1,15 @@
 package com.example.data.repository
 
-import android.util.Log
 import androidx.room.withTransaction
-import com.example.data.local.JobDao
-import com.example.data.local.OrganisationDao
-import com.example.data.local.RecruitmentDatabase
-import com.example.data.local.SyncMetadataDao
-import com.example.data.local.SyncMetadataEntity
+import com.example.data.local.*
 import com.example.data.remote.RemoteJobDataSource
 import com.example.model.Job
 import com.example.model.Organisation
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class OfflineFirstJobRepository(
     private val database: RecruitmentDatabase? = null,
@@ -19,106 +17,27 @@ class OfflineFirstJobRepository(
     private val organisationDao: OrganisationDao,
     private val syncMetadataDao: SyncMetadataDao,
     private val remoteDataSource: RemoteJobDataSource,
-    private val transactionRunner: suspend (suspend () -> Unit) -> Unit = { block ->
-        database?.withTransaction { block() } ?: block()
-    }
+    private val transactionRunner: suspend (suspend () -> Unit) -> Unit = { block -> database?.withTransaction { block() } ?: block() }
 ) : JobRepository {
-
-    companion object {
-        private const val TAG = "JobRepository"
-        private const val SYNC_KEY_JOBS = "jobs_sync"
-    }
-
-    override fun getJobsStream(): Flow<List<Job>> {
-        return jobDao.getJobsFlow().map { entities ->
-            entities.map { JobMappers.toDomain(it) }
-        }
-    }
-
-    override fun getJobByIdStream(id: Int): Flow<Job?> {
-        return jobDao.getJobByIdFlow(id).map { entity ->
-            entity?.let { JobMappers.toDomain(it) }
-        }
-    }
-
-    override fun getOrganisationsStream(): Flow<List<Organisation>> {
-        return organisationDao.getOrganisationsFlow().map { entities ->
-            entities.map { JobMappers.toDomain(it) }
-        }
-    }
-
-    override fun searchJobsStream(query: String): Flow<List<Job>> {
-        return jobDao.searchJobsFlow(query).map { entities ->
-            entities.map { JobMappers.toDomain(it) }
-        }
-    }
-
-    private fun logDebug(message: String) {
+    private val syncMutex = Mutex()
+    override fun getJobsStream(): Flow<List<Job>> = jobDao.getJobsFlow().map { rows -> rows.map(JobMappers::toDomain) }
+    override fun getJobByIdStream(id: Int): Flow<Job?> = jobDao.getJobByIdFlow(id).map { it?.let(JobMappers::toDomain) }
+    override fun getOrganisationsStream(): Flow<List<Organisation>> = organisationDao.getOrganisationsFlow().map { rows -> rows.map(JobMappers::toDomain) }
+    override fun searchJobsStream(query: String): Flow<List<Job>> = jobDao.searchJobsFlow(query).map { rows -> rows.map(JobMappers::toDomain) }
+    override suspend fun refresh(force: Boolean): Result<Unit> = syncMutex.withLock {
         try {
-            android.util.Log.d(TAG, message)
-        } catch (_: Exception) {
-            println("[$TAG] $message")
-        }
-    }
-
-    private fun logError(message: String, throwable: Throwable? = null) {
-        try {
-            android.util.Log.e(TAG, message, throwable)
-        } catch (_: Exception) {
-            println("[$TAG] ERROR: $message")
-        }
-    }
-
-    override suspend fun refresh(force: Boolean): Result<Unit> {
-        return try {
-            val activeCount = jobDao.getActiveJobCount()
-            val lastSync = syncMetadataDao.getMetadata(SYNC_KEY_JOBS)
-            
-            // If cache is empty, force full sync regardless
-            val isInitial = activeCount == 0
-            val updatedSince = if (force || isInitial) null else lastSync?.lastSyncTimestamp
-
-            logDebug("Initiating sync: force=$force, isInitial=$isInitial, updatedSince=$updatedSince")
-
-            val syncResponse = remoteDataSource.fetchJobsSync(updatedSince)
-
+            val metadata = syncMetadataDao.getMetadata("jobs_sync")
+            val since = if (force || jobDao.getActiveJobCount() == 0) null else metadata?.lastSyncTimestamp
+            val response = remoteDataSource.fetchJobsSync(since)
+            require(response.serverTime.isNotBlank()) { "Missing server sync cursor" }
             transactionRunner {
-                // 1. Process incoming or updated jobs
-                if (syncResponse.jobs.isNotEmpty()) {
-                    val entities = syncResponse.jobs.map { JobMappers.toEntity(it) }
-                    jobDao.upsertJobs(entities)
-                    logDebug("Upserted ${entities.size} jobs into Room cache")
-                }
-
-                // 2. Process deletions if any
-                if (syncResponse.deletedJobIds.isNotEmpty()) {
-                    jobDao.hardDeleteJobs(syncResponse.deletedJobIds)
-                    logDebug("Removed ${syncResponse.deletedJobIds.size} deleted jobs from cache")
-                }
-
-                // 3. Process organisations if any
-                syncResponse.organisations?.let { orgDtos ->
-                    if (orgDtos.isNotEmpty()) {
-                        val orgEntities = orgDtos.map { JobMappers.toEntity(it) }
-                        organisationDao.upsertOrganisations(orgEntities)
-                        logDebug("Upserted ${orgEntities.size} organisations into Room cache")
-                    }
-                }
-
-                // 4. Update sync timestamp
-                syncMetadataDao.setMetadata(
-                    SyncMetadataEntity(
-                        syncKey = SYNC_KEY_JOBS,
-                        lastSyncTimestamp = syncResponse.serverTime,
-                        lastSyncLocalTime = System.currentTimeMillis()
-                    )
-                )
+                if (response.jobs.isNotEmpty()) jobDao.upsertJobs(response.jobs.map(JobMappers::toEntity))
+                if (response.deletedJobIds.isNotEmpty()) jobDao.hardDeleteJobs(response.deletedJobIds)
+                response.organisations?.takeIf { it.isNotEmpty() }?.let { organisationDao.upsertOrganisations(it.map(JobMappers::toEntity)) }
+                syncMetadataDao.setMetadata(SyncMetadataEntity("jobs_sync", response.serverTime, System.currentTimeMillis()))
             }
-
             Result.success(Unit)
-        } catch (e: Exception) {
-            logError("Sync failed: ${e.message}. Preserving existing offline cache.", e)
-            Result.failure(e)
-        }
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (error: Exception) { Result.failure(error) }
     }
 }

@@ -1,37 +1,23 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
-import com.example.model.UserProfile
-import com.example.ui.components.JobPulseSymbol
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
+import com.example.data.local.AndroidUserPreferences
 import com.example.theme.LocalThemeRevealController
-import com.example.ui.theme.AppColors
 import com.example.ui.theme.LocalAppThemeTokens
+import com.example.util.NotificationHelper
 
 @Composable
 fun AccountScreen(
@@ -42,433 +28,60 @@ fun AccountScreen(
     onToggleTheme: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var profile by remember { mutableStateOf(UserProfile()) }
-    var selectedCategoryQuota by remember { mutableStateOf(profile.categoryQuota) }
-    var pushEnabled by remember { mutableStateOf(profile.pushAlertsEnabled) }
-    var admitCardAlerts by remember { mutableStateOf(profile.admitCardAlertsEnabled) }
-    var examDateAlerts by remember { mutableStateOf(profile.examDateAlertsEnabled) }
+    val context = LocalContext.current
+    val preferences = remember(context) { AndroidUserPreferences(context) }
     val tokens = LocalAppThemeTokens.current
-    val revealController = LocalThemeRevealController.current
-    var switchCenter by remember { mutableStateOf<Offset?>(null) }
-
+    val reveal = LocalThemeRevealController.current
+    var themeCenter by remember { mutableStateOf<Offset?>(null) }
     LazyColumn(
-        state = listState,
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 110.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = modifier
-            .fillMaxSize()
-            .testTag("account_screen")
+        state = listState, modifier = modifier.fillMaxSize().testTag("account_screen"),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Aspirant Profile Hero Card
         item {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(tokens.cardRadius),
-                color = tokens.surface,
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    tokens.borderSubtle
-                ),
-                shadowElevation = if (tokens.isDark) 3.dp else 2.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(22.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Avatar Initials with clean typography
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(tokens.primary)
-                            .border(2.dp, tokens.glassBorder, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "AS",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = profile.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = tokens.textPrimary
-                    )
-
-                    Text(
-                        text = profile.email,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textTertiary
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Surface(
-                        shape = RoundedCornerShape(tokens.chipRadius),
-                        color = tokens.primary.copy(alpha = if (tokens.isDark) 0.18f else 0.10f)
-                    ) {
-                        Text(
-                            text = "Target: ${profile.targetExam}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = tokens.primary,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
-                    }
+            PreferenceSection("On this device") {
+                Text("Your saved jobs and preferences stay on this device. No account is connected.", color = tokens.textSecondary)
+                TextButton(onViewBookmarks) { Text("Saved jobs ($bookmarkedCount)") }
+            }
+        }
+        item {
+            PreferenceSection("Appearance") {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Dark appearance", Modifier.weight(1f), color = tokens.textPrimary)
+                    Switch(isDarkTheme, { reveal.reveal(themeCenter) }, Modifier.onGloballyPositioned {
+                        themeCenter = it.positionInRoot() + Offset(it.size.width / 2f, it.size.height / 2f)
+                    })
                 }
             }
         }
-
-        // Saved Bookmarks Quick Row
         item {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(tokens.cardRadius))
-                    .clickable { onViewBookmarks() },
-                shape = RoundedCornerShape(tokens.cardRadius),
-                color = tokens.surface,
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    tokens.borderSubtle
-                ),
-                shadowElevation = if (tokens.isDark) 2.dp else 1.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(tokens.primary.copy(alpha = if (tokens.isDark) 0.22f else 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Bookmark,
-                                contentDescription = null,
-                                tint = tokens.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(14.dp))
-                        Column {
-                            Text(
-                                text = "Bookmarked Positions",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = tokens.textPrimary
-                            )
-                            Text(
-                                text = "$bookmarkedCount notices saved for application",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = tokens.textSecondary
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = "View",
-                        tint = tokens.textTertiary
-                    )
-                }
-            }
-        }
-
-        // Eligibility & Quota Profile
-        item {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(tokens.cardRadius),
-                color = tokens.surface,
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    tokens.borderSubtle
-                ),
-                shadowElevation = if (tokens.isDark) 2.dp else 1.dp
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = "Eligibility & Quota Profile",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = tokens.textPrimary
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    ProfileItem(
-                        icon = Icons.Default.School,
-                        label = "Highest Qualification",
-                        value = profile.qualification,
-                        tokens = tokens
-                    )
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 10.dp),
-                        color = tokens.divider
-                    )
-
-                    ProfileItem(
-                        icon = Icons.Default.Category,
-                        label = "Reservation / Quota Category",
-                        value = selectedCategoryQuota,
-                        tokens = tokens
-                    )
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 10.dp),
-                        color = tokens.divider
-                    )
-
-                    ProfileItem(
-                        icon = Icons.Default.PinDrop,
-                        label = "Home State / Domicile",
-                        value = profile.stateResidence,
-                        tokens = tokens
-                    )
-                }
-            }
-        }
-
-        // Live Alerts & Notifications Preferences
-        item {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(tokens.cardRadius),
-                color = tokens.surface,
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    tokens.borderSubtle
-                ),
-                shadowElevation = if (tokens.isDark) 2.dp else 1.dp
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = "Notification Preferences",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = tokens.textPrimary
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    AccountSwitchRow(
-                        title = "Push Notifications for New Jobs",
-                        subtitle = "Instant alert whenever a relevant quota seat is announced",
-                        checked = pushEnabled,
-                        onCheckedChange = { pushEnabled = it },
-                        tokens = tokens
-                    )
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        color = tokens.divider
-                    )
-
-                    AccountSwitchRow(
-                        title = "Admit Card Download Alerts",
-                        subtitle = "Notify as soon as the hall ticket link goes live",
-                        checked = admitCardAlerts,
-                        onCheckedChange = { admitCardAlerts = it },
-                        tokens = tokens
-                    )
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        color = tokens.divider
-                    )
-
-                    AccountSwitchRow(
-                        title = "Exam Schedule & Date Alerts",
-                        subtitle = "Live notice of exam dates and shift timings",
-                        checked = examDateAlerts,
-                        onCheckedChange = { examDateAlerts = it },
-                        tokens = tokens
-                    )
-                }
-            }
-        }
-
-        // Appearance & Information
-        item {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(tokens.cardRadius),
-                color = tokens.surface,
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    tokens.borderSubtle
-                ),
-                shadowElevation = if (tokens.isDark) 2.dp else 1.dp
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = "Appearance & System",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = tokens.textPrimary
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = if (tokens.isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
-                                contentDescription = null,
-                                tint = tokens.primary
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = "Dark Mode",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = tokens.textPrimary
-                                )
-                                Text(
-                                    text = if (tokens.isDark) "Refined charcoal dark theme" else "Clean pearl light theme",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = tokens.textSecondary
-                                )
-                            }
-                        }
-
-                        Switch(
-                            checked = tokens.isDark,
-                            onCheckedChange = {
-                                revealController.reveal(switchCenter)
-                            },
-                            modifier = Modifier.onGloballyPositioned { coordinates ->
-                                val pos = coordinates.positionInRoot()
-                                val size = coordinates.size
-                                switchCenter = Offset(
-                                    pos.x + size.width / 2f,
-                                    pos.y + size.height / 2f
-                                )
-                            }
-                        )
-                    }
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        color = tokens.divider
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            JobPulseSymbol(size = 30.dp)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = "JobPulse",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = tokens.textPrimary
-                                )
-                                Text(
-                                    text = "National Recruitment Intelligence",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = tokens.textTertiary
-                                )
-                            }
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(tokens.chipRadius),
-                            color = tokens.surfaceElevated
-                        ) {
-                            Text(
-                                text = "v2.5",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = tokens.textSecondary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
+            PreferenceSection("Notification interests") {
+                Text("These choices are saved locally. Automatic delivery is not connected yet; permission alone does not activate alerts.", color = tokens.textSecondary, style = MaterialTheme.typography.bodySmall)
+                listOf("jobs" to "New opportunities", "admit_cards" to "Admit cards", "exam_dates" to "Exam dates").forEach { (key, title) ->
+                    var checked by remember(key) { mutableStateOf(preferences.alertPreference(key)) }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(title, Modifier.weight(1f), color = tokens.textPrimary)
+                        Switch(checked, { checked = it; preferences.saveAlertPreference(key, it) })
                     }
                 }
+                TextButton({ NotificationHelper.openNotificationSettings(context) }) { Text("Android notification settings") }
+            }
+        }
+        item {
+            PreferenceSection("About recruitment information") {
+                Text("JobPulse is an independent service. Always confirm eligibility, deadlines and fees in the recruiting authority’s latest notice before applying.", color = tokens.textSecondary)
             }
         }
     }
 }
 
 @Composable
-private fun ProfileItem(icon: ImageVector, label: String, value: String, tokens: com.example.ui.theme.AppThemeTokens) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tokens.primary,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = tokens.textTertiary
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = tokens.textPrimary
-            )
+private fun PreferenceSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    val tokens = LocalAppThemeTokens.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(tokens.cardRadius), color = tokens.surface) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = tokens.textPrimary)
+            content()
         }
-    }
-}
-
-@Composable
-private fun AccountSwitchRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    tokens: com.example.ui.theme.AppThemeTokens
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = tokens.textPrimary
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = tokens.textSecondary
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange
-        )
     }
 }
