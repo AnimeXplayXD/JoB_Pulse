@@ -1,0 +1,44 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+
+stages: [test]
+
+android-validate:
+  stage: test
+  image: eclipse-temurin:17-jdk-jammy
+  timeout: 45m
+  interruptible: true
+  variables:
+    ANDROID_SDK_ROOT: "$CI_PROJECT_DIR/.android-sdk"
+    ANDROID_HOME: "$CI_PROJECT_DIR/.android-sdk"
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  cache:
+    key: android-gradle-validation
+    when: always
+    paths:
+      - .gradle/caches/
+      - .gradle/wrapper/
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y --no-install-recommends curl unzip libgl1 libegl1 libgles2 libxrender1 libxi6 libxtst6 libfreetype6 fonts-dejavu-core
+    - mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+    - curl --fail --location --retry 3 https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/android-tools.zip
+    - unzip -q /tmp/android-tools.zip -d /tmp/android-tools
+    - mv /tmp/android-tools/cmdline-tools "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+    - export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+    - 'set +o pipefail; yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null; set -o pipefail'
+    - sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-36.1" "build-tools;36.0.0"
+  script:
+    - bash ./gradlew --no-daemon --stacktrace --continue testDebugUnitTest lintDebug assembleDebug compileReleaseKotlin assembleDebugAndroidTest
+  artifacts:
+    when: always
+    expire_in: 7 days
+    reports:
+      junit: app/build/test-results/testDebugUnitTest/TEST-*.xml
+    paths:
+      - app/build/reports/
+      - app/build/outputs/apk/debug/*.apk
