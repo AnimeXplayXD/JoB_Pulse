@@ -20,7 +20,9 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.ceil
 import com.example.ui.theme.LocalAppThemeTokens
 
 @Stable
@@ -70,10 +72,13 @@ fun LiquidGlassBox(
             .drawWithContent {
                 if (supported && backdrop != null) {
                     val relative = origin - backdrop.origin
-                    blurLayer.record {
-                        translate(-relative.x, -relative.y) { drawLayer(backdrop.layer) }
+                    // Sample beyond the visible capsule before applying the blur kernel.
+                    // Cropping first creates repeated/transparent strips along glass edges.
+                    val padding = ceil(radius * 3f).toInt()
+                    blurLayer.record(size = IntSize(ceil(size.width).toInt() + padding * 2, ceil(size.height).toInt() + padding * 2)) {
+                        translate(padding - relative.x, padding - relative.y) { drawLayer(backdrop.layer) }
                     }
-                    drawLayer(blurLayer)
+                    translate(-padding.toFloat(), -padding.toFloat()) { drawLayer(blurLayer) }
                 }
                 drawRect(tintColor)
                 drawContent()

@@ -31,7 +31,7 @@ class CircularRevealShape(private val progress: Float, private val origin: Offse
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         if (progress <= 0f) return Outline.Generic(Path())
         if (progress >= 1f) return Outline.Rectangle(Rect(Offset.Zero, size))
-        val center = origin?.takeUnless { it == Offset.Zero } ?: Offset(size.width / 2f, size.height / 2f)
+        val center = origin ?: Offset(size.width / 2f, size.height / 2f)
         val radius = hypot(max(center.x, size.width - center.x).toDouble(), max(center.y, size.height - center.y).toDouble()).toFloat() * 1.05f * progress
         return Outline.Generic(Path().apply { addOval(Rect(center, radius)) })
     }
@@ -66,7 +66,7 @@ fun ThemeRevealProvider(
     val progress = remember { Animatable(1f) }
     var snapshot by remember { mutableStateOf<ImageBitmap?>(null) }
     var busy by remember { mutableStateOf(false) }
-    var origin by remember { mutableStateOf(Offset.Zero) }
+    var origin by remember { mutableStateOf<Offset?>(null) }
     var fromDark by remember { mutableStateOf(isDarkTheme) }
     var toDark by remember { mutableStateOf(!isDarkTheme) }
     val controller = remember(layer, scope, context) {
@@ -77,7 +77,7 @@ fun ThemeRevealProvider(
                     else Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
                 if (!animationsEnabled) { toggle(); return }
                 busy = true
-                origin = center ?: Offset.Zero
+                origin = center
                 fromDark = dark
                 toDark = !dark
                 scope.launch {
@@ -100,7 +100,7 @@ fun ThemeRevealProvider(
         }
     }
     // Do not distribute per-frame progress through the entire composition tree.
-    val wave = ThemeWaveState(snapshot != null, if (snapshot != null) 0f else 1f, origin, fromDark, toDark)
+    val wave = ThemeWaveState(snapshot != null, if (snapshot != null) 0f else 1f, origin ?: Offset.Zero, fromDark, toDark)
     CompositionLocalProvider(
         LocalThemeRevealController provides controller, LocalThemeWave provides wave,
         com.example.ui.components.LocalCircularReveal provides controller,

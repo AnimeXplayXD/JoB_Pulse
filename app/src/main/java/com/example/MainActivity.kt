@@ -29,6 +29,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.nestedscroll.*
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -117,6 +118,8 @@ fun GovtJobsApp(
     val savedTabs = rememberSaveableStateHolder()
     var selectedId by rememberSaveable { mutableStateOf<Int?>(null) }
     var dockVisible by remember { mutableStateOf(true) }
+    var dockHeightPx by remember { mutableIntStateOf(0) }
+    val dockClearance = maxOf(120.dp, with(LocalDensity.current) { dockHeightPx.toDp() } + 16.dp)
     var themeCenter by remember { mutableStateOf<Offset?>(null) }
     var permissionGranted by remember { mutableStateOf(NotificationHelper.hasNotificationPermission(context)) }
     var showEducation by rememberSaveable { mutableStateOf(NotificationHelper.shouldShowFirstOpenPrompt(context)) }
@@ -237,6 +240,7 @@ fun GovtJobsApp(
                                         }
                                     }
                                 }
+                                CompositionLocalProvider(LocalDockContentPadding provides dockClearance) {
                                 Crossfade(uiState.currentTab, Modifier.weight(1f), animationSpec = tween(160), label = "tab_content") { tab ->
                                     savedTabs.SaveableStateProvider(tab.name) {
                                         // Only the active tab owns shared keys during tab crossfades.
@@ -246,7 +250,7 @@ fun GovtJobsApp(
                                                 home, uiState.searchQuery, onSearchQueryChanged,
                                                 uiState.selectedCategory, onCategorySelected, uiState.selectedState, onStateSelected,
                                                 uiState.jobs, uiState.bookmarkedJobIds, onBookmarkToggle,
-                                                uiState.isLoading || !uiState.hasLoadedJobs || uiState.isFiltering, uiState.showBookmarksOnly, onRefresh,
+                                                uiState.isLoading || (!uiState.hasLoadedJobs && uiState.cacheError == null) || uiState.isFiltering, uiState.showBookmarksOnly, onRefresh,
                                                 { onTabSelected(NavTab.SEARCH) }, { selectedId = it.id },
                                                 sharedTransitionScope = tabSharedScope, animatedVisibilityScope = detailScope
                                             )
@@ -260,10 +264,12 @@ fun GovtJobsApp(
                                         }
                                     }
                                 }
+                                }
                             }
                             CompositionLocalProvider(LocalGlassBackdrop provides backdrop) {
                                 val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-                                GlassyDock(uiState.currentTab, onTabSelected, dockVisible && !keyboardVisible, uiState.isDarkTheme, Modifier.align(Alignment.BottomCenter))
+                                GlassyDock(uiState.currentTab, onTabSelected, dockVisible && !keyboardVisible, uiState.isDarkTheme,
+                                    Modifier.align(Alignment.BottomCenter).onSizeChanged { if (it.height > 0) dockHeightPx = it.height })
                             }
                         }
                     }

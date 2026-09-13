@@ -39,7 +39,7 @@ fun FeedScreen(listState: LazyListState, modifier: Modifier = Modifier) {
         }
         LazyColumn(
             state = listState, modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = com.example.ui.components.LocalDockContentPadding.current),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (filtered.isEmpty()) item { Text("No announcements available yet.", Modifier.padding(20.dp), color = tokens.textSecondary) }

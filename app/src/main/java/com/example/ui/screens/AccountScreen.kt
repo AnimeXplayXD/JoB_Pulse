@@ -35,7 +35,7 @@ fun AccountScreen(
     var themeCenter by remember { mutableStateOf<Offset?>(null) }
     LazyColumn(
         state = listState, modifier = modifier.fillMaxSize().testTag("account_screen"),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 120.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = com.example.ui.components.LocalDockContentPadding.current),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {

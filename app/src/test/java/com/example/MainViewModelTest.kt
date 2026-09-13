@@ -77,7 +77,7 @@ class MainViewModelTest {
     @Test
     fun mainViewModel_filtersByCategory() = runTest {
         val repository = FakeJobRepository()
-        val viewModel = MainViewModel(repository = repository)
+        val viewModel = MainViewModel(repository = repository, filterDispatcher = testDispatcher)
 
         advanceUntilIdle()
 
@@ -93,7 +93,7 @@ class MainViewModelTest {
     @Test
     fun mainViewModel_filtersBySearchQuery() = runTest {
         val repository = FakeJobRepository()
-        val viewModel = MainViewModel(repository = repository)
+        val viewModel = MainViewModel(repository = repository, filterDispatcher = testDispatcher)
 
         advanceUntilIdle()
 
@@ -108,7 +108,7 @@ class MainViewModelTest {
     @Test
     fun mainViewModel_togglesBookmarks_andViewsSavedJobs() = runTest {
         val repository = FakeJobRepository()
-        val viewModel = MainViewModel(repository = repository)
+        val viewModel = MainViewModel(repository = repository, filterDispatcher = testDispatcher)
 
         advanceUntilIdle()
 
@@ -129,7 +129,7 @@ class MainViewModelTest {
     @Test
     fun mainViewModel_handlesSyncFailure_entersOfflineModeGracefully() = runTest {
         val repository = FakeJobRepository(shouldFailSync = true)
-        val viewModel = MainViewModel(repository = repository)
+        val viewModel = MainViewModel(repository = repository, filterDispatcher = testDispatcher)
 
         advanceUntilIdle()
 

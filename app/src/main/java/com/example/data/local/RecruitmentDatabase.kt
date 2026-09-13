@@ -1,6 +1,7 @@
 package com.example.data.local
 
 import android.content.Context
+import com.example.BuildConfig
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -56,9 +57,9 @@ abstract class RecruitmentDatabase : RoomDatabase() {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     RecruitmentDatabase::class.java,
-                    "recruitment_database.db"
+                    if (BuildConfig.DEBUG) "recruitment_database_debug.db" else "recruitment_database.db"
                 )
-                .fallbackToDestructiveMigration()
+                // Future schema versions must supply migrations, not erase cached data silently.
                 .build()
                 .also { INSTANCE = it }
             }

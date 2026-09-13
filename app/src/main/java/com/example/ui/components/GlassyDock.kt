@@ -90,11 +90,13 @@ fun GlassyDock(
         exit = slideOutVertically { it } + fadeOut(tween(120))
     ) {
         BoxWithConstraints(
-            Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp),
+            Modifier.fillMaxWidth().navigationBarsPadding().padding(vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
+            // Reduce exterior margins before shrinking the four 48dp touch targets.
+            val sideMargin = minOf(16.dp, ((maxWidth - 204.dp) / 2).coerceAtLeast(0.dp))
             LiquidGlassBox(
-                modifier = Modifier.width(minOf(preferredWidth, maxWidth)).testTag("floating_glassy_dock"),
+                modifier = Modifier.width(minOf(preferredWidth, maxWidth - sideMargin * 2)).testTag("floating_glassy_dock"),
                 shape = RoundedCornerShape(26.dp), elevation = 8.dp
             ) {
                 Box(

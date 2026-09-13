@@ -94,15 +94,18 @@ fun SearchScreen(
             LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
         } else {
             Text("${current.jobs.size} opportunities", Modifier.padding(horizontal = 20.dp, vertical = 8.dp), color = tokens.textSecondary, style = MaterialTheme.typography.bodySmall)
+        }
+        // Keep the lazy layout mounted while filtering; retain previews and scroll state.
+        val displayedJobs = result?.jobs.orEmpty()
             LazyColumn(
                 state = listState, modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = com.example.ui.components.LocalDockContentPadding.current),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                if (current.jobs.isEmpty()) item {
+                if (current != null && displayedJobs.isEmpty()) item {
                     Text("No matching jobs. Try broadening your search.", Modifier.padding(20.dp), color = tokens.textSecondary)
                 }
-                items(current.jobs, key = { it.id }, contentType = { "job_card" }) { job ->
+                items(displayedJobs, key = { it.id }, contentType = { "job_card" }) { job ->
                     JobCardItem(
                         job, job.id in bookmarkedIds, { onToggleBookmark(job.id) },
                         onOpenDetails = { onJobDoubleTap(job) },
@@ -110,6 +113,5 @@ fun SearchScreen(
                     )
                 }
             }
-        }
     }
 }
