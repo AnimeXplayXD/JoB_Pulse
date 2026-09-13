@@ -27,6 +27,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.example.model.NavTab
@@ -59,7 +64,21 @@ fun GlassyDock(
     var preview by remember { mutableStateOf(currentTab) }
     val active = if (dragging) preview else currentTab
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    val hysteresis = with(LocalDensity.current) { 8.dp.toPx() }
+    val density = LocalDensity.current
+    val hysteresis = with(density) { 8.dp.toPx() }
+
+    // Measure every label once, not just the selected one. Changing tabs must not
+    // resize the capsule or change drag coordinates underneath the user's finger.
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val textMeasurer = rememberTextMeasurer()
+    val labelSizes = remember(textMeasurer, labelStyle, tabs, density) {
+        tabs.map { textMeasurer.measure(it.title, style = labelStyle, maxLines = 1, softWrap = false).size }
+    }
+    val labelWidth = with(density) { labelSizes.maxOf { it.width }.toDp() }
+    val labelHeight = with(density) { labelSizes.maxOf { it.height }.toDp() }
+    val preferredSlotWidth = maxOf(72.dp, labelWidth + 16.dp)
+    val preferredWidth = preferredSlotWidth * tabs.size + 12.dp
+    val slotHeight = maxOf(56.dp, 24.dp + labelHeight + 12.dp)
     val center = animateFloatAsState(
         targetValue = if (dragging && width > 0) (dragX / width).coerceIn(0.5f / tabs.size, 1f - 0.5f / tabs.size) else (active.ordinal + 0.5f) / tabs.size,
         animationSpec = if (dragging) snap() else spring(dampingRatio = 1f, stiffness = 600f),
@@ -70,67 +89,80 @@ fun GlassyDock(
         enter = slideInVertically { it } + fadeIn(tween(160)),
         exit = slideOutVertically { it } + fadeOut(tween(120))
     ) {
-        LiquidGlassBox(
-            modifier = Modifier.navigationBarsPadding().padding(horizontal = 20.dp, vertical = 8.dp)
-                .fillMaxWidth().testTag("floating_glassy_dock"),
-            shape = RoundedCornerShape(28.dp), elevation = 8.dp
+        BoxWithConstraints(
+            Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                Modifier.padding(6.dp).fillMaxWidth().height(64.dp)
-                    .onSizeChanged { width = it.width }
-                    .pointerInput(width, rtl) {
-                        fun logicalX(x: Float) = if (rtl) width - x else x
-                        try {
-                            detectHorizontalDragGestures(
-                                onDragStart = { offset ->
-                                    preview = latestTab
-                                    dragX = logicalX(offset.x)
-                                    dragging = true
-                                },
-                                onHorizontalDrag = { change, _ ->
-                                    change.consume()
-                                    dragX = logicalX(change.position.x).coerceIn(0f, width.toFloat())
-                                    val index = dockIndexForX(dragX, width.toFloat(), tabs.size, preview.ordinal, hysteresis)
-                                    if (tabs[index] != preview) {
-                                        preview = tabs[index]
-                                        latestSelect(preview)
-                                    }
-                                },
-                                onDragEnd = { dragging = false },
-                                onDragCancel = { dragging = false }
-                            )
-                        } finally { dragging = false }
-                    }
+            LiquidGlassBox(
+                modifier = Modifier.width(minOf(preferredWidth, maxWidth)).testTag("floating_glassy_dock"),
+                shape = RoundedCornerShape(26.dp), elevation = 8.dp
             ) {
-                Canvas(Modifier.matchParentSize()) {
-                    val slot = size.width / tabs.size
-                    val fraction = if (rtl) 1f - center.value else center.value
-                    drawRoundRect(
-                        color = tokens.primary.copy(alpha = if (tokens.isDark) 0.18f else 0.09f),
-                        topLeft = Offset(size.width * fraction - slot / 2f + 2.dp.toPx(), 0f),
-                        size = Size((slot - 4.dp.toPx()).coerceAtLeast(0f), size.height),
-                        cornerRadius = CornerRadius(22.dp.toPx())
-                    )
-                }
-                Row(Modifier.fillMaxSize().selectableGroup()) {
-                    tabs.forEach { tab ->
-                        val selected = active == tab
-                        val icon = when (tab) {
-                            NavTab.HOME -> if (selected) Icons.Filled.Home else Icons.Outlined.Home
-                            NavTab.FEED -> if (selected) Icons.Filled.DynamicFeed else Icons.Outlined.DynamicFeed
-                            NavTab.SEARCH -> if (selected) Icons.Filled.Search else Icons.Outlined.Search
-                            NavTab.ACCOUNT -> if (selected) Icons.Filled.Person else Icons.Outlined.Person
+                Box(
+                    Modifier.padding(6.dp).fillMaxWidth().height(slotHeight)
+                        .onSizeChanged { width = it.width }
+                        .pointerInput(width, rtl, hysteresis) {
+                            fun logicalX(x: Float) = if (rtl) width - x else x
+                            try {
+                                detectHorizontalDragGestures(
+                                    onDragStart = { offset ->
+                                        preview = latestTab
+                                        dragX = logicalX(offset.x)
+                                        dragging = true
+                                    },
+                                    onHorizontalDrag = { change, _ ->
+                                        change.consume()
+                                        dragX = logicalX(change.position.x).coerceIn(0f, width.toFloat())
+                                        val index = dockIndexForX(dragX, width.toFloat(), tabs.size, preview.ordinal, hysteresis)
+                                        if (tabs[index] != preview) {
+                                            preview = tabs[index]
+                                            latestSelect(preview)
+                                        }
+                                    },
+                                    onDragEnd = { dragging = false },
+                                    onDragCancel = { dragging = false }
+                                )
+                            } finally { dragging = false }
                         }
-                        Column(
-                            Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(22.dp))
-                                .testTag("dock_${tab.name}")
-                                .selectable(selected, role = Role.Tab, onClick = { latestSelect(tab) }),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(icon, tab.title, Modifier.size(23.dp), tint = if (selected) tokens.primary else tokens.textSecondary)
-                            AnimatedVisibility(selected, enter = fadeIn(tween(100)), exit = fadeOut(tween(80))) {
-                                Text(tab.title, style = MaterialTheme.typography.labelSmall, color = tokens.primary, maxLines = 1)
+                ) {
+                    Canvas(Modifier.matchParentSize()) {
+                        val slot = size.width / tabs.size
+                        val fraction = if (rtl) 1f - center.value else center.value
+                        drawRoundRect(
+                            color = tokens.primary.copy(alpha = if (tokens.isDark) 0.18f else 0.09f),
+                            topLeft = Offset(size.width * fraction - slot / 2f + 2.dp.toPx(), 0f),
+                            size = Size((slot - 4.dp.toPx()).coerceAtLeast(0f), size.height),
+                            cornerRadius = CornerRadius(20.dp.toPx())
+                        )
+                    }
+                    Row(Modifier.fillMaxSize().selectableGroup()) {
+                        tabs.forEach { tab ->
+                            val selected = active == tab
+                            val icon = when (tab) {
+                                NavTab.HOME -> if (selected) Icons.Filled.Home else Icons.Outlined.Home
+                                NavTab.FEED -> if (selected) Icons.Filled.DynamicFeed else Icons.Outlined.DynamicFeed
+                                NavTab.SEARCH -> if (selected) Icons.Filled.Search else Icons.Outlined.Search
+                                NavTab.ACCOUNT -> if (selected) Icons.Filled.Person else Icons.Outlined.Person
+                            }
+                            Column(
+                                Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(20.dp))
+                                    .testTag("dock_${tab.name}")
+                                    .semantics { contentDescription = tab.title }
+                                    .selectable(selected, role = Role.Tab, onClick = { latestSelect(tab) }),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(icon, null, Modifier.size(24.dp), tint = if (selected) tokens.primary else tokens.textSecondary)
+                                Spacer(Modifier.height(2.dp))
+                                // Reserved label space keeps icons still during selection changes.
+                                Box(Modifier.fillMaxWidth().height(labelHeight), contentAlignment = Alignment.Center) {
+                                    AnimatedVisibility(selected, enter = fadeIn(tween(100)), exit = fadeOut(tween(80))) {
+                                        Text(
+                                            tab.title, Modifier.padding(horizontal = 4.dp).clearAndSetSemantics {},
+                                            style = labelStyle, color = tokens.primary, maxLines = 1,
+                                            softWrap = false, overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
