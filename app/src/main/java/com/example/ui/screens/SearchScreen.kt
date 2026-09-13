@@ -1,8 +1,6 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -10,24 +8,25 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ManageSearch
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.model.*
 import com.example.ui.components.JobCardItem
-import com.example.ui.components.LiquidGlassBox
 import com.example.ui.theme.LocalAppThemeTokens
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+private data class SearchFilter(val query: String, val category: JobCategory, val qualification: String, val directOnly: Boolean)
+private data class SearchResult(val filter: SearchFilter, val source: List<Job>, val jobs: List<Job>)
+
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun SearchScreen(
     listState: LazyListState,
@@ -35,251 +34,78 @@ fun SearchScreen(
     onToggleBookmark: (Int) -> Unit,
     onJobDoubleTap: (Job) -> Unit,
     modifier: Modifier = Modifier,
-    allJobs: List<Job> = DummyJobs,
+    allJobs: List<Job> = emptyList(),
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
-    var query by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf(JobCategory.ALL) }
-    var selectedQualification by remember { mutableStateOf("All Qualifications") }
-    var onlyApplyActive by remember { mutableStateOf(false) }
-    val tokens = LocalAppThemeTokens.current
-
-    val searchResults = remember(query, selectedCategory, selectedQualification, onlyApplyActive, allJobs) {
-        allJobs.filter { job ->
-            val matchQuery = if (query.isBlank()) true else {
-                job.title.contains(query, ignoreCase = true) ||
-                job.organization.contains(query, ignoreCase = true) ||
-                job.level.contains(query, ignoreCase = true) ||
-                job.location.contains(query, ignoreCase = true) ||
-                job.quota.contains(query, ignoreCase = true)
+    var query by rememberSaveable { mutableStateOf("") }
+    var category by rememberSaveable { mutableStateOf(JobCategory.ALL) }
+    var qualification by rememberSaveable { mutableStateOf("All Qualifications") }
+    var directOnly by rememberSaveable { mutableStateOf(false) }
+    var showFilters by rememberSaveable { mutableStateOf(false) }
+    val filter = remember(query, category, qualification, directOnly) { SearchFilter(query, category, qualification, directOnly) }
+    val result by produceState<SearchResult?>(null, filter, allJobs) {
+        value = withContext(Dispatchers.Default) {
+            val matches = allJobs.filter { job ->
+                ensureActive()
+                (filter.query.isBlank() || listOf(job.title, job.organization, job.level, job.location, job.quota, job.minQualification).any { it.contains(filter.query.trim(), true) }) &&
+                    (filter.category == JobCategory.ALL || filter.category == job.category) &&
+                    (filter.qualification == "All Qualifications" || job.minQualification.equals(filter.qualification, true)) &&
+                    (!filter.directOnly || !job.applyUrl.isNullOrBlank())
             }
-            val matchCategory = if (selectedCategory == JobCategory.ALL) true else job.category == selectedCategory
-            val matchQual = if (selectedQualification == "All Qualifications") true else job.minQualification.equals(selectedQualification, ignoreCase = true)
-            val matchApply = if (onlyApplyActive) job.applyUrl != null else true
-
-            matchQuery && matchCategory && matchQual && matchApply
+            SearchResult(filter, allJobs, matches)
         }
     }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .testTag("specific_search_screen")
-    ) {
-        // Search Header Surface with Liquid Glass
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = tokens.surface,
-            shadowElevation = 2.dp,
-            border = androidx.compose.foundation.BorderStroke(
-                0.5.dp,
-                tokens.borderSubtle
-            )
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                // Search Input Field
-                TextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(tokens.buttonRadius))
-                        .border(
-                            1.dp,
-                            tokens.borderSubtle,
-                            RoundedCornerShape(tokens.buttonRadius)
-                        ),
-                    placeholder = {
-                        Text(
-                            "Search by exam, department, role, or qualification...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = tokens.textTertiary
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ManageSearch,
-                            contentDescription = "Search",
-                            tint = tokens.primary
-                        )
-                    },
-                    trailingIcon = {
-                        if (query.isNotEmpty()) {
-                            IconButton(onClick = { query = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear search query", tint = tokens.textSecondary)
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = tokens.surfaceElevated,
-                        unfocusedContainerColor = tokens.surfaceElevated,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Sector Filter Chips
-                Text(
-                    text = "RECRUITMENT SECTOR",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = tokens.textSecondary,
-                    letterSpacing = 0.4.sp
-                )
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 5.dp)
-                ) {
-                    items(JobCategory.entries, key = { it.name }) { category ->
-                        val isSelected = selectedCategory == category
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedCategory = category },
-                            label = { Text(category.displayName, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(tokens.chipRadius),
-                            colors = FilterChipDefaults.filterChipColors(
-                                containerColor = tokens.surfaceElevated,
-                                selectedContainerColor = tokens.primary,
-                                selectedLabelColor = Color.White
-                            )
-                        )
+    val current = result?.takeIf { it.filter == filter && it.source === allJobs }
+    val tokens = LocalAppThemeTokens.current
+    Column(modifier.fillMaxSize().testTag("specific_search_screen")) {
+        OutlinedTextField(
+            value = query, onValueChange = { query = it }, singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("job_search_query"),
+            placeholder = { Text("Search jobs and organizations") },
+            leadingIcon = { Icon(Icons.Default.Search, null) },
+            trailingIcon = { if (query.isNotEmpty()) IconButton({ query = "" }) { Icon(Icons.Default.Clear, "Clear search") } },
+            shape = RoundedCornerShape(16.dp)
+        )
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            TextButton({ showFilters = !showFilters }) { Text(if (showFilters) "Hide filters" else "Filters") }
+            TextButton({ query = ""; category = JobCategory.ALL; qualification = "All Qualifications"; directOnly = false }) { Text("Reset") }
+        }
+        AnimatedVisibility(showFilters) {
+            Column {
+                LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(JobCategory.entries, key = { it.name }) { item ->
+                        FilterChip(category == item, { category = item }, { Text(item.displayName) }, border = null, shape = RoundedCornerShape(50))
                     }
                 }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Minimum Qualification Filter Chips
-                Text(
-                    text = "MINIMUM QUALIFICATION",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = tokens.textSecondary,
-                    letterSpacing = 0.4.sp
-                )
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 5.dp)
-                ) {
-                    items(QualificationLevels, key = { it }) { qual ->
-                        val isSelected = selectedQualification == qual
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedQualification = qual },
-                            label = { Text(qual, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(tokens.chipRadius),
-                            colors = FilterChipDefaults.filterChipColors(
-                                containerColor = tokens.surfaceElevated,
-                                selectedContainerColor = tokens.primaryContainer,
-                                selectedLabelColor = tokens.onPrimaryContainer
-                            )
-                        )
+                LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(QualificationLevels, key = { it }) { item ->
+                        FilterChip(qualification == item, { qualification = item }, { Text(item) }, border = null, shape = RoundedCornerShape(50))
                     }
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Direct Apply Filter Toggle
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Show Direct 'Apply Now' Links Only",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textPrimary
-                    )
-                    Switch(
-                        checked = onlyApplyActive,
-                        onCheckedChange = { onlyApplyActive = it }
-                    )
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("With application links", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    Switch(directOnly, { directOnly = it })
                 }
             }
         }
-
-        // Result Count Banner
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "${searchResults.size} Matching Opportunities",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = tokens.textPrimary
-            )
-
-            if (selectedCategory != JobCategory.ALL || selectedQualification != "All Qualifications" || query.isNotEmpty() || onlyApplyActive) {
-                TextButton(
-                    onClick = {
-                        query = ""
-                        selectedCategory = JobCategory.ALL
-                        selectedQualification = "All Qualifications"
-                        onlyApplyActive = false
-                    }
-                ) {
-                    Text("Reset Filters", style = MaterialTheme.typography.labelSmall, color = tokens.primary)
-                }
-            }
-        }
-
-        // Search Results List
-        if (searchResults.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.SearchOff,
-                        contentDescription = null,
-                        modifier = Modifier.size(52.dp),
-                        tint = tokens.textTertiary
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "No matching vacancies found",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = tokens.textSecondary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Try broadening your sector or qualification filters",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textTertiary
-                    )
-                }
-            }
+        if (current == null) {
+            LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
         } else {
+            Text("${current.jobs.size} opportunities", Modifier.padding(horizontal = 20.dp, vertical = 8.dp), color = tokens.textSecondary, style = MaterialTheme.typography.bodySmall)
             LazyColumn(
-                state = listState,
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 110.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize()
+                state = listState, modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(
-                    items = searchResults,
-                    key = { it.id },
-                    contentType = { "job_card" }
-                ) { job ->
+                if (current.jobs.isEmpty()) item {
+                    Text("No matching jobs. Try broadening your search.", Modifier.padding(20.dp), color = tokens.textSecondary)
+                }
+                items(current.jobs, key = { it.id }, contentType = { "job_card" }) { job ->
                     JobCardItem(
-                        job = job,
-                        isBookmarked = bookmarkedIds.contains(job.id),
-                        onBookmarkToggle = { onToggleBookmark(job.id) },
-                        onDoubleTap = { onJobDoubleTap(job) },
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope
+                        job, job.id in bookmarkedIds, { onToggleBookmark(job.id) },
+                        onOpenDetails = { onJobDoubleTap(job) },
+                        sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope
                     )
                 }
             }
