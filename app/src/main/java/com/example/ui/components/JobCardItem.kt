@@ -27,6 +27,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import com.example.model.Job
 import com.example.model.RecruitmentStatus
@@ -79,7 +81,10 @@ fun JobCardItem(
                 onClickLabel = if (expanded) "Collapse preview" else "Expand preview",
                 onClick = { expanded = !expanded }
             )
-            .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" },
+            .semantics { 
+                stateDescription = if (expanded) "Expanded" else "Collapsed" 
+                isTraversalGroup = true
+            },
         color = tokens.surface, shape = shape
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -154,7 +159,12 @@ private fun PreviewField(label: String, value: String) {
 @Composable
 fun JobCardSkeleton() {
     val tokens = LocalAppThemeTokens.current
-    Surface(shape = RoundedCornerShape(tokens.cardRadius), color = tokens.surface, modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        shape = RoundedCornerShape(tokens.cardRadius), color = tokens.surface, 
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
+            contentDescription = "Loading job placeholder"
+        }
+    ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(tokens.surfaceSubtle))
             listOf(0.85f, 0.65f, 0.75f, 0.5f).forEach { fraction ->

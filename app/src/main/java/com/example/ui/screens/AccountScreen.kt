@@ -18,6 +18,7 @@ import com.example.data.local.AndroidUserPreferences
 import com.example.theme.LocalThemeRevealController
 import com.example.ui.theme.LocalAppThemeTokens
 import com.example.util.NotificationHelper
+import kotlinx.coroutines.launch
 
 @Composable
 fun AccountScreen(
@@ -57,11 +58,12 @@ fun AccountScreen(
         item {
             PreferenceSection("Notification interests") {
                 Text("These choices are saved locally. Automatic delivery is not connected yet; permission alone does not activate alerts.", color = tokens.textSecondary, style = MaterialTheme.typography.bodySmall)
+                val scope = rememberCoroutineScope()
                 listOf("jobs" to "New opportunities", "admit_cards" to "Admit cards", "exam_dates" to "Exam dates").forEach { (key, title) ->
-                    var checked by remember(key) { mutableStateOf(preferences.alertPreference(key)) }
+                    val checked by preferences.alertPreference(key).collectAsState(initial = false)
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(title, Modifier.weight(1f), color = tokens.textPrimary)
-                        Switch(checked, { checked = it; preferences.saveAlertPreference(key, it) })
+                        Switch(checked, { newValue -> scope.launch { preferences.saveAlertPreference(key, newValue) } })
                     }
                 }
                 TextButton({ NotificationHelper.openNotificationSettings(context) }) { Text("Android notification settings") }

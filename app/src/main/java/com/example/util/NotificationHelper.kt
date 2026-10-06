@@ -62,6 +62,19 @@ object NotificationHelper {
         catch (_: SecurityException) { /* Permission may be revoked between check and delivery. */ }
     }
 
+    fun postNewJobNotification(context: Context) {
+        setupNotificationChannels(context)
+        if (!canPostToChannel(context, CHANNEL_ID_ALERTS)) return
+        val intent = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID_ALERTS)
+            .setSmallIcon(R.drawable.ic_jobpulse_notification)
+            .setContentTitle("New Recruitment Notices")
+            .setContentText("Check out the latest job postings and updates.")
+            .setContentIntent(intent).setAutoCancel(true).build()
+        try { NotificationManagerCompat.from(context).notify(1002, notification) }
+        catch (_: SecurityException) { /* Permission may be revoked */ }
+    }
+
     fun shouldShowFirstOpenPrompt(context: Context): Boolean = !hasNotificationPermission(context) && !prefs(context).getBoolean("first_open_notification_prompted", false)
     fun markFirstOpenPromptShown(context: Context) { prefs(context).edit().putBoolean("first_open_notification_prompted", true).apply() }
     fun resetFirstOpenPromptForTesting(context: Context) { prefs(context).edit().remove("first_open_notification_prompted").remove("permission_requested").apply() }

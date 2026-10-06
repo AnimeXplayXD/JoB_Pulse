@@ -1,6 +1,7 @@
 package com.example.data.repository
 
 import androidx.room.withTransaction
+import androidx.paging.map
 import com.example.data.local.*
 import com.example.data.remote.RemoteJobDataSource
 import com.example.model.Job
@@ -24,6 +25,28 @@ class OfflineFirstJobRepository(
 ) : JobRepository {
     private val syncMutex = Mutex()
     override fun getJobsStream(): Flow<List<Job>> = jobDao.getJobsFlow().map { rows -> rows.map(JobMappers::toDomain) }.flowOn(Dispatchers.Default)
+    
+    override fun getJobsPagingStream(
+        query: String,
+        category: String,
+        state: String,
+        showBookmarksOnly: Boolean,
+        bookmarkedIds: Set<Int>
+    ): Flow<androidx.paging.PagingData<Job>> {
+        return androidx.paging.Pager(
+            config = androidx.paging.PagingConfig(pageSize = 20, enablePlaceholders = false),
+            pagingSourceFactory = {
+                if (showBookmarksOnly) {
+                    val ids = if (bookmarkedIds.isEmpty()) listOf(-1) else bookmarkedIds.toList()
+                    jobDao.getBookmarkedJobsPagingSource(query, category, state, ids)
+                } else {
+                    jobDao.getJobsPagingSource(query, category, state)
+                }
+            }
+        ).flow.map { pagingData ->
+            pagingData.map { JobMappers.toDomain(it) }
+        }
+    }
     override fun getJobByIdStream(id: Int): Flow<Job?> = jobDao.getJobByIdFlow(id).map { it?.let(JobMappers::toDomain) }.flowOn(Dispatchers.Default)
     override fun getOrganisationsStream(): Flow<List<Organisation>> = organisationDao.getOrganisationsFlow().map { rows -> rows.map(JobMappers::toDomain) }.flowOn(Dispatchers.Default)
     override fun searchJobsStream(query: String): Flow<List<Job>> = jobDao.searchJobsFlow(query).map { rows -> rows.map(JobMappers::toDomain) }.flowOn(Dispatchers.Default)

@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.BuildConfig
 import com.example.model.*
@@ -190,7 +191,10 @@ private fun DetailSection(title: String, content: @Composable ColumnScope.() -> 
 @Composable
 private fun DetailField(label: String, value: String?) {
     val tokens = LocalAppThemeTokens.current
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(
+        Modifier.semantics(mergeDescendants = true) {}, 
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
         Text(value?.takeIf { it.isNotBlank() } ?: "Not announced", style = MaterialTheme.typography.bodyMedium, color = tokens.textPrimary)
     }

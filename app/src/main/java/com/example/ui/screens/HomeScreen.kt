@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.model.*
 import com.example.ui.components.JobCardItem
@@ -34,7 +35,7 @@ fun HomeScreen(
     onCategorySelected: (JobCategory) -> Unit,
     selectedState: String,
     onStateSelected: (String) -> Unit,
-    jobs: List<Job>,
+    jobs: androidx.paging.compose.LazyPagingItems<Job>,
     bookmarkedJobIds: Set<Int>,
     onBookmarkToggle: (Int) -> Unit,
     isLoading: Boolean,
@@ -79,28 +80,34 @@ fun HomeScreen(
                 }
             }
         }
-        PullToRefreshBox(isLoading && jobs.isNotEmpty(), onRefresh, Modifier.fillMaxSize()) {
+        PullToRefreshBox(isLoading && jobs.itemCount > 0, onRefresh, Modifier.fillMaxSize()) {
             LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = com.example.ui.components.LocalDockContentPadding.current),
                 verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxSize()
             ) {
-                if (isLoading && jobs.isEmpty()) {
+                if (isLoading && jobs.itemCount == 0) {
                     items(4, contentType = { "skeleton" }) { JobCardSkeleton() }
-                } else if (jobs.isEmpty()) {
+                } else if (jobs.itemCount == 0) {
                     item {
-                        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(24.dp).semantics(mergeDescendants = true) {}, 
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Text(if (showBookmarksOnly) "Your saved jobs appear here" else "No jobs found", style = MaterialTheme.typography.titleLarge, color = tokens.textPrimary)
                             Text(if (showBookmarksOnly) "Save an opportunity with its bookmark button." else "Try another category or refresh for updates.", style = MaterialTheme.typography.bodyMedium, color = tokens.textSecondary)
                         }
                     }
                 } else {
-                    items(jobs, key = { it.id }, contentType = { "job_card" }) { job ->
-                        JobCardItem(
-                            job, job.id in bookmarkedJobIds, { onBookmarkToggle(job.id) },
-                            onOpenDetails = { onJobDoubleTap(job) },
-                            sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope
-                        )
+                    items(jobs.itemCount, key = { index -> jobs[index]?.id ?: index }, contentType = { "job_card" }) { index ->
+                        val job = jobs[index]
+                        if (job != null) {
+                            JobCardItem(
+                                job, job.id in bookmarkedJobIds, { onBookmarkToggle(job.id) },
+                                onOpenDetails = { onJobDoubleTap(job) },
+                                sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope
+                            )
+                        }
                     }
                 }
             }

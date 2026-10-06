@@ -14,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -74,10 +75,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val model: MainViewModel = viewModel(factory = factory)
             val state by model.uiState.collectAsStateWithLifecycle()
+            val pagedJobs = model.pagedJobs.collectAsLazyPagingItems()
             ThemeRevealProvider(model::onToggleTheme, state.isDarkTheme) {
                 MyApplicationTheme(state.isDarkTheme) {
                     GovtJobsApp(
-                        state, model::onCategorySelected, model::onStateSelected,
+                        state, pagedJobs, model::onCategorySelected, model::onStateSelected,
                         model::onSearchQueryChanged, model::onToggleBookmark,
                         model::onToggleBookmarksView, model::onToggleTheme,
                         model::onToggleAlerts, model::onRefresh, model::onSelectTab
@@ -98,6 +100,7 @@ private tailrec fun Context.activity(): Activity? = when (this) {
 @Composable
 fun GovtJobsApp(
     uiState: AppState,
+    pagedJobs: androidx.paging.compose.LazyPagingItems<Job>,
     onCategorySelected: (JobCategory) -> Unit,
     onStateSelected: (String) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
@@ -183,7 +186,7 @@ fun GovtJobsApp(
             ) { detailId ->
                 val detailScope = this
                 if (detailId != null) {
-                    val job = uiState.allJobs.find { it.id == detailId }
+                    val job = pagedJobs.itemSnapshotList.items.find { it.id == detailId }
                     if (job == null) {
                         Column(Modifier.fillMaxSize().statusBarsPadding().padding(24.dp)) {
                             Text(
@@ -246,18 +249,20 @@ fun GovtJobsApp(
                                         // Only the active tab owns shared keys during tab crossfades.
                                         val tabSharedScope = if (tab == uiState.currentTab) this@SharedTransitionLayout else null
                                         when (tab) {
-                                            NavTab.HOME -> HomeScreen(
+                                            NavTab.HOME -> {
+                                                HomeScreen(
                                                 home, uiState.searchQuery, onSearchQueryChanged,
                                                 uiState.selectedCategory, onCategorySelected, uiState.selectedState, onStateSelected,
-                                                uiState.jobs, uiState.bookmarkedJobIds, onBookmarkToggle,
+                                                pagedJobs, uiState.bookmarkedJobIds, onBookmarkToggle,
                                                 uiState.isLoading || (!uiState.hasLoadedJobs && uiState.cacheError == null) || uiState.isFiltering, uiState.showBookmarksOnly, onRefresh,
                                                 { onTabSelected(NavTab.SEARCH) }, { selectedId = it.id },
                                                 sharedTransitionScope = tabSharedScope, animatedVisibilityScope = detailScope
-                                            )
+                                                )
+                                            }
                                             NavTab.FEED -> FeedScreen(feed)
                                             NavTab.SEARCH -> SearchScreen(
                                                 search, uiState.bookmarkedJobIds, onBookmarkToggle, { selectedId = it.id },
-                                                allJobs = uiState.allJobs,
+                                                allJobs = pagedJobs.itemSnapshotList.items,
                                                 sharedTransitionScope = tabSharedScope, animatedVisibilityScope = detailScope
                                             )
                                             NavTab.ACCOUNT -> AccountScreen(account, uiState.bookmarkedJobIds.size, onToggleBookmarksView, uiState.isDarkTheme, onToggleTheme)

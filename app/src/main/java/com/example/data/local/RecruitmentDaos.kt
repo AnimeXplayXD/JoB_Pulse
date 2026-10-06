@@ -22,6 +22,48 @@ interface JobDao {
     """)
     fun searchJobsFlow(query: String): Flow<List<JobEntity>>
 
+    @Query("""
+        SELECT * FROM jobs 
+        WHERE isDeleted = 0 
+          AND (:category = 'ALL' OR category = :category)
+          AND (:state = 'All States' OR postingLocation LIKE '%' || :state || '%')
+          AND (
+            :query = '' 
+            OR title LIKE '%' || :query || '%' 
+            OR organization LIKE '%' || :query || '%' 
+            OR department LIKE '%' || :query || '%'
+            OR category LIKE '%' || :query || '%'
+          )
+        ORDER BY id DESC
+    """)
+    fun getJobsPagingSource(
+        query: String,
+        category: String,
+        state: String
+    ): androidx.paging.PagingSource<Int, JobEntity>
+
+    @Query("""
+        SELECT * FROM jobs 
+        WHERE isDeleted = 0 
+          AND id IN (:bookmarkedIds)
+          AND (:category = 'ALL' OR category = :category)
+          AND (:state = 'All States' OR postingLocation LIKE '%' || :state || '%')
+          AND (
+            :query = '' 
+            OR title LIKE '%' || :query || '%' 
+            OR organization LIKE '%' || :query || '%' 
+            OR department LIKE '%' || :query || '%'
+            OR category LIKE '%' || :query || '%'
+          )
+        ORDER BY id DESC
+    """)
+    fun getBookmarkedJobsPagingSource(
+        query: String,
+        category: String,
+        state: String,
+        bookmarkedIds: List<Int>
+    ): androidx.paging.PagingSource<Int, JobEntity>
+
     @Query("SELECT * FROM jobs WHERE id = :id AND isDeleted = 0 LIMIT 1")
     fun getJobByIdFlow(id: Int): Flow<JobEntity?>
 

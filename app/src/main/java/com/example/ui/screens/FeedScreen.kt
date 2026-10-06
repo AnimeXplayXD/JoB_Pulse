@@ -12,6 +12,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.BuildConfig
 import com.example.model.DummyFeedItems
@@ -54,7 +55,10 @@ fun FeedScreen(listState: LazyListState, modifier: Modifier = Modifier) {
 fun FeedCard(item: FeedItem, onOpenNotice: () -> Unit) {
     val tokens = LocalAppThemeTokens.current
     Surface(shape = RoundedCornerShape(tokens.cardRadius), color = tokens.surface, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            Modifier.padding(20.dp).semantics(mergeDescendants = true) {}, 
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text("${item.tag} · ${item.timeAgo}", color = tokens.textSecondary, style = MaterialTheme.typography.bodySmall)
             Text(item.title, color = tokens.textPrimary, style = MaterialTheme.typography.titleLarge)
             Text(item.organization, color = tokens.textSecondary, style = MaterialTheme.typography.bodyMedium)

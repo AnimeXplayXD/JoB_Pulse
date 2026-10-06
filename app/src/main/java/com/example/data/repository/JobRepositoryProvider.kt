@@ -21,7 +21,15 @@ object JobRepositoryProvider {
         }
     private fun createRepository(context: Context, customRemote: RemoteJobDataSource?): JobRepository {
         val database = RecruitmentDatabase.getInstance(context)
-        val remote = customRemote ?: if (BuildConfig.DEBUG) DemoDataSource() else UnconfiguredDataSource()
+        val apiUrl = BuildConfig.API_URL
+        val remote = customRemote ?: if (!apiUrl.isNullOrBlank() && apiUrl != "\"\"") {
+            val service = createRetrofitService(apiUrl.removeSurrounding("\""))
+            RetrofitRemoteJobDataSource(service)
+        } else if (BuildConfig.DEBUG) {
+            DemoDataSource()
+        } else {
+            UnconfiguredDataSource()
+        }
         return OfflineFirstJobRepository(database, database.jobDao(), database.organisationDao(), database.syncMetadataDao(), remote)
     }
     fun createRetrofitService(baseUrl: String): RecruitmentApiService {

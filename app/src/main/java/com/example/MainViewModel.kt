@@ -17,13 +17,14 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+import androidx.paging.cachedIn
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+
 @Immutable
 data class AppState(
     val selectedCategory: JobCategory = JobCategory.ALL,
     val selectedState: String = "All States",
     val searchQuery: String = "",
-    val allJobs: List<Job> = emptyList(),
-    val jobs: List<Job> = emptyList(),
     val bookmarkedJobIds: Set<Int> = emptySet(),
     val showBookmarksOnly: Boolean = false,
     val isLoading: Boolean = false,
@@ -37,6 +38,14 @@ data class AppState(
     val isFiltering: Boolean = false
 )
 
+private data class FilterArgs(
+    val query: String,
+    val category: String,
+    val state: String,
+    val showBookmarksOnly: Boolean,
+    val bookmarkedIds: Set<Int>
+)
+
 class MainViewModel(
     private val repository: JobRepository = JobRepositoryProvider.getRepository(JobPulseApp.instance),
     private val preferences: UserPreferences? = null,
@@ -44,8 +53,8 @@ class MainViewModel(
     private val filterDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AppState(
-        bookmarkedJobIds = preferences?.bookmarks().orEmpty(),
-        isDarkTheme = preferences?.darkTheme() ?: true,
+        bookmarkedJobIds = emptySet(),
+        isDarkTheme = true,
         currentTab = NavTab.entries.firstOrNull { it.name == savedStateHandle.get<String>("tab") } ?: NavTab.HOME,
         selectedCategory = JobCategory.entries.firstOrNull { it.name == savedStateHandle.get<String>("category") } ?: JobCategory.ALL,
         selectedState = savedStateHandle["state"] ?: "All States",
@@ -54,40 +63,37 @@ class MainViewModel(
     ))
     val uiState = _uiState.asStateFlow()
     private var refreshJob: CoroutineJob? = null
-    private var observationJob: CoroutineJob? = null
-    private var filteringJob: CoroutineJob? = null
 
-    init { observeJobs(); syncData(false) }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val pagedJobs = combine(
+        _uiState.map { it.searchQuery }.distinctUntilChanged(),
+        _uiState.map { it.selectedCategory }.distinctUntilChanged(),
+        _uiState.map { it.selectedState }.distinctUntilChanged(),
+        _uiState.map { it.showBookmarksOnly }.distinctUntilChanged(),
+        _uiState.map { it.bookmarkedJobIds }.distinctUntilChanged()
+    ) { query, category, state, showBookmarksOnly, bookmarkedIds ->
+        FilterArgs(query, category.name, state, showBookmarksOnly, bookmarkedIds)
+    }.flatMapLatest { args ->
+        repository.getJobsPagingStream(
+            args.query,
+            args.category,
+            args.state,
+            args.showBookmarksOnly,
+            args.bookmarkedIds
+        )
+    }.cachedIn(viewModelScope)
 
-    private fun observeJobs() {
-        if (observationJob?.isActive == true) return
-        observationJob = viewModelScope.launch {
-            repository.getJobsStream().catch { error ->
-                if (error is CancellationException) throw error
-                _uiState.update { it.copy(cacheError = "Unable to read saved notices. Try Refresh.") }
-            }.collect { jobs ->
-                _uiState.update { it.copy(allJobs = jobs, hasLoadedJobs = true, cacheError = null) }
-                filterJobs()
+    init { 
+        syncData(false)
+        viewModelScope.launch {
+            preferences?.bookmarks?.collect { bookmarks ->
+                _uiState.update { it.copy(bookmarkedJobIds = bookmarks) }
             }
         }
-    }
-
-    private fun filterJobs() {
-        filteringJob?.cancel()
-        val input = _uiState.value
-        _uiState.update { it.copy(isFiltering = true) }
-        filteringJob = viewModelScope.launch {
-            val matches = withContext(filterDispatcher) {
-                val query = input.searchQuery.trim()
-                input.allJobs.filter { job ->
-                    ensureActive()
-                    (input.selectedCategory == JobCategory.ALL || job.category == input.selectedCategory) &&
-                        (input.selectedCategory != JobCategory.STATE || input.selectedState == "All States" || job.state == input.selectedState || job.location.contains(input.selectedState, true)) &&
-                        (query.isBlank() || job.title.contains(query, true) || job.organization.contains(query, true) || job.level.contains(query, true) || job.location.contains(query, true)) &&
-                        (!input.showBookmarksOnly || job.id in input.bookmarkedJobIds)
-                }
+        viewModelScope.launch {
+            preferences?.darkTheme?.collect { isDark ->
+                _uiState.update { it.copy(isDarkTheme = isDark) }
             }
-            _uiState.update { it.copy(jobs = matches, isFiltering = false) }
         }
     }
 
@@ -108,43 +114,41 @@ class MainViewModel(
         }
     }
 
-    fun onRefresh() { observeJobs(); syncData(true) }
+    fun onRefresh() { syncData(true) }
     fun onSelectTab(tab: NavTab) {
         savedStateHandle["tab"] = tab.name
         _uiState.update { it.copy(currentTab = tab) }
     }
     fun onToggleAlerts(show: Boolean) { _uiState.update { it.copy(showAlertsDialog = show) } }
     fun onToggleTheme() {
-        _uiState.update { it.copy(isDarkTheme = !it.isDarkTheme) }
-        preferences?.saveDarkTheme(_uiState.value.isDarkTheme)
+        val newTheme = !_uiState.value.isDarkTheme
+        _uiState.update { it.copy(isDarkTheme = newTheme) }
+        viewModelScope.launch { preferences?.saveDarkTheme(newTheme) }
     }
     fun onToggleBookmark(jobId: Int) {
-        _uiState.update { state -> state.copy(bookmarkedJobIds = if (jobId in state.bookmarkedJobIds) state.bookmarkedJobIds - jobId else state.bookmarkedJobIds + jobId) }
-        preferences?.saveBookmarks(_uiState.value.bookmarkedJobIds)
-        filterJobs()
+        val current = _uiState.value.bookmarkedJobIds
+        val newBookmarks = if (jobId in current) current - jobId else current + jobId
+        _uiState.update { state -> state.copy(bookmarkedJobIds = newBookmarks) }
+        viewModelScope.launch { preferences?.saveBookmarks(newBookmarks) }
     }
     fun onToggleBookmarksView() {
         val enabled = !_uiState.value.showBookmarksOnly
         savedStateHandle["saved_only"] = enabled
         onSelectTab(NavTab.HOME)
         _uiState.update { it.copy(showBookmarksOnly = enabled) }
-        filterJobs()
     }
     fun onSearchQueryChanged(query: String) {
         savedStateHandle["query"] = query
         _uiState.update { it.copy(searchQuery = query) }
-        filterJobs()
     }
     fun onCategorySelected(category: JobCategory) {
         savedStateHandle["category"] = category.name
         val state = if (category == JobCategory.STATE) _uiState.value.selectedState else "All States"
         savedStateHandle["state"] = state
         _uiState.update { it.copy(selectedCategory = category, selectedState = state) }
-        filterJobs()
     }
     fun onStateSelected(stateName: String) {
         savedStateHandle["state"] = stateName
         _uiState.update { it.copy(selectedState = stateName) }
-        filterJobs()
     }
 }
